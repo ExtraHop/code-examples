@@ -24,6 +24,12 @@ This Python script creates device groups through the REST API. The script create
 
 For more information, see [Create a device group through the REST API](https://docs.extrahop.com/current/rest-create-device-group/).
 
+### lambda-traffic-mirror
+
+This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
+
+For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lambda](https://docs.dev.extrahop.com/current/rx360-lambda-traffic-mirror/)
+
 ### py-rx360-auth
 
 This Python script generates a temporary API access token and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
