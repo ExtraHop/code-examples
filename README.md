@@ -24,6 +24,12 @@ This Python script connects a list of sensors to Reveal(x) 360 through the REST 
 
 For more information, see [Connect to Reveal(x) 360 from self-managed sensors through the REST API](https://docs.extrahop.com/current/rest-connect-ccp/).
 
+### sunburst
+
+This Python script retrieves metrics about DNS queries for the Command and Control server domains associated with the SUNBURST backdoor attack.
+
+For more information, see [How to Hunt for, Detect, and Respond to SUNBURST](https://www.extrahop.com/company/blog/2020/detect-and-respond-to-sunburst/).
+
 ## Related resources
 
 * [ExtraHop API documentation](https://docs.extrahop.com/current/api/)
