@@ -26,9 +26,7 @@ For more information, see [Connect to Reveal(x) 360 from self-managed sensors th
 
 ### sunburst
 
-This Python script retrieves metrics about DNS queries for the Command and Control server domains associated with the SUNBURST backdoor attack.
-
-For more information, see [How to Hunt for, Detect, and Respond to SUNBURST](https://www.extrahop.com/company/blog/2020/detect-and-respond-to-sunburst/).
+The Python scripts and JSON file in this directory search the ExtraHop system for indicators of the SUNBURST backdoor attack through the REST API. The SUNBURST trojan is dormant for long periods of time and might only occasionally contact external resources. To search for the large number of suspicious hostnames and IP addresses over a long period of time, we recommend that you query metrics through the REST API.
 
 ## Related resources
 
