@@ -142,6 +142,9 @@ def main():
                 {"time": time, "host": host, "count": count}
             )
 
+    # Only show positive matches
+    request_map = {k: v for k, v in request_map.items() if v["matches"]}
+
     """ print the request map """
     pp(request_map)
 
