@@ -135,11 +135,11 @@ def main():
     """ Parse the stats and update the device to request map """
     for stat in resp["stats"]:
         if stat["values"][0]:
-            uri = stat["values"][0][0]["key"]["str"]
+            host = stat["values"][0][0]["key"]["str"]
             count = stat["values"][0][0]["value"]
             time = stat["time"]
             request_map[stat["oid"]]["matches"].append(
-                {"time": time, "uri": uri, "count": count}
+                {"time": time, "host": host, "count": count}
             )
 
     """ print the request map """
