@@ -107,7 +107,8 @@ def main():
     for c in clients:
         request_map[c["id"]] = {
             "display_name": c["display_name"],
-            "ipadd4": c["ipaddr4"],
+            "ipaddr4": c["ipaddr4"],
+            "macaddr": c["macaddr"],
             "matches": [],
         }
         oids.append(c["id"])
