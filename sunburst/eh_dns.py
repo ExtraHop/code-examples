@@ -29,7 +29,7 @@ def api_request(args, path, body=None):
     req = urllib.request.Request(
         f"https://{args.target}/api/v1/{path}",
         headers={
-            "accept": "application/json",
+            "Accept": "application/json",
             "Authorization": f"ExtraHop apikey={args.api_key}",
             "Content-Type": "application/json",
         },
