@@ -113,7 +113,7 @@ headers = {
 }
 
 
-print(f"Quering {host} for data...")
+print(f"Querying {host} for data...")
 
 device_details = {}
 if args.devicesfile is None:
