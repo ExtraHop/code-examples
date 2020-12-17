@@ -40,7 +40,35 @@ def api_request(args, path, body=None):
     return rsp
 
 
-def show_device_ip_metrics(args):
+def get_devices(args):
+    if args.device_oids:
+        devices = []
+        for oid in args.device_oids:
+            try:
+                device = api_request(args, f"/devices/{oid}")
+            except urllib.error.HTTPError:
+                print(f"WARNING: failed to find device {oid}")
+                continue
+            devices.append(device)
+    else:
+        try:
+            devices = api_request(
+                args,
+                "/devices/search",
+                {
+                    "filter": {
+                        "field": "ipaddr",
+                        "operand": args.device_cidr,
+                        "operator": "=",
+                    }
+                },
+            )
+        except urllib.error.HTTPError:
+            return []
+    return devices
+
+
+def show_device_ip_metrics(args, devices):
     """
     Searches the target for suspicious activity by device ip metrics
     """
@@ -51,22 +79,7 @@ def show_device_ip_metrics(args):
     ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
     ip_regexp = ip_regexp.replace(".", "\\.")
 
-    if args.device_oids:
-        oids = args.device_oids
-    else:
-        devices = api_request(
-            args,
-            "/devices/search",
-            {
-                "filter": {
-                    "field": "ipaddr",
-                    "operand": args.device_cidr,
-                    "operator": "=",
-                }
-            },
-        )
-        oids = [device["id"] for device in devices]
-
+    oids = [device["id"] for device in devices]
     resp = api_request(
         args,
         "/metrics",
@@ -129,26 +142,11 @@ def show_application_host_metrics(args):
         print("No Sunburst host indicators found in application metrics.")
 
 
-def show_device_host_metrics(args):
-    """ Get all DNS Clients """
-    clients = api_request(
-        args,
-        "/devices/search",
-        body={
-            "active_from": args.from_time,
-            "active_until": args.until_time,
-            "filter": {
-                "field": "activity",
-                "operand": "dns_client",
-                "operator": "=",
-            },
-        },
-    )
-
+def show_device_host_metrics(args, devices):
     """ Initialize a device to dns request map. """
     request_map = dict()
     oids = []
-    for c in clients:
+    for c in devices:
         request_map[c["id"]] = {
             "display_name": c["display_name"],
             "ipaddr4": c["ipaddr4"],
@@ -296,9 +294,16 @@ def main():
         )
         exit(1)
     if args.device_oids or args.device_cidr:
-        show_device_ip_metrics(args)
+        devices = get_devices(args)
+        if devices:
+            show_device_host_metrics(args, devices)
+            show_device_ip_metrics(args, devices)
+        else:
+            print(
+                "WARNING: found no devices with specified criteria",
+                file=sys.stderr,
+            )
     show_application_host_metrics(args)
-    show_device_host_metrics(args)
     show_records_host_link(args)
 
 
