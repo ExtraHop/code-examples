@@ -46,7 +46,10 @@ def show_device_ip_metrics(args):
     """
     # load in the suspect ip addresses file
     with open(args.threat_list, "r") as f:
-        ti_ips = set(json.load(f))
+        ti_ips = json.load(f)
+
+    ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
+    ip_regexp = ip_regexp.replace(".", "\\.")
 
     if args.device_oids:
         oids = args.device_oids
@@ -73,7 +76,7 @@ def show_device_ip_metrics(args):
             "until": args.until_time,
             "metric_category": "net_detail",
             "object_type": "device",
-            "metric_specs": [{"name": "bytes_out"}],
+            "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
             "object_ids": oids,
         },
     )
@@ -83,15 +86,15 @@ def show_device_ip_metrics(args):
     for time_slice in resp["stats"]:
         oid = time_slice["oid"]
         for entry in time_slice["values"][0]:
-            if entry["key"]["addr"] in ti_ips:
-                results[oid]["hits"].append(
-                    {
-                        "host": entry["key"].get("host", ""),
-                        "time": time_slice["time"],
-                        "addr": entry["key"]["addr"],
-                        "count": entry["value"],
-                    }
-                )
+            results[oid]["hits"].append(
+                {
+                    "host": entry["key"].get("host", ""),
+                    "time": time_slice["time"],
+                    "addr": entry["key"]["addr"],
+                    "count": entry["value"],
+                }
+            )
+
     results = {k: v for k, v in results.items() if v["hits"]}
     if results:
         print("Found Sunburst IP indicators in device metrics:")
