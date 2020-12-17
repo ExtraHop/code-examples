@@ -40,7 +40,7 @@ def api_request(args, path, body=None):
     return rsp
 
 
-def show_devices_ip_metrics(args):
+def show_device_ip_metrics(args):
     """
     Searches the target for suspicious activity by device ip metrics
     """
@@ -293,7 +293,7 @@ def main():
         )
         exit(1)
     if args.device_oids or args.device_cidr:
-        show_devices_ip_metrics(args)
+        show_device_ip_metrics(args)
     show_application_host_metrics(args)
     show_device_host_metrics(args)
     show_records_host_link(args)
