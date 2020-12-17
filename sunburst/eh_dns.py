@@ -22,7 +22,58 @@ if hasattr(ssl, "_create_unverified_context"):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def show_application_metrics(args):
+def show_devices_ip_metrics(args):
+    """
+    Searches the target for suspicious activity by device ip metrics
+    """
+    # load in the suspect ip addresses file
+    with open(args.threat_list, "r") as f:
+        ti_ips = set(json.load(f))
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"ExtraHop apikey={args.api_key}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "cycle": args.cycle,
+        "from": args.from_time,
+        "until": args.until_time,
+        "metric_category": "net_detail",
+        "object_type": "device",
+        "metric_specs": [{"name": "bytes_out"}],
+        "object_ids": args.device_oids,
+    }
+    data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://{args.target}/api/v1/metrics", data=data, headers=headers
+    )
+    with urllib.request.urlopen(req) as resp:
+        resp = json.loads(resp.read().decode("utf-8"))
+
+    # parse the stats
+    results = {oid: {"hits": []} for oid in args.device_oids}
+    for time_slice in resp["stats"]:
+        oid = time_slice["oid"]
+        for entry in time_slice["values"][0]:
+            if entry["key"]["addr"] in ti_ips:
+                results[oid]["hits"].append(
+                    {
+                        "host": entry["key"]["host"],
+                        "time": time_slice["time"],
+                        "addr": entry["key"]["addr"],
+                        "count": entry["value"],
+                    }
+                )
+    results = {k: v for k, v in results.items() if v["hits"]}
+    if results:
+        print("Found Sunburst IP indicators in device metrics:")
+        pp(results)
+    else:
+        print("No Sunburst IP indicators found in device metrics.")
+
+
+def show_application_host_metrics(args):
     headers = {
         "accept": "application/json",
         "Authorization": f"ExtraHop apikey={args.api_key}",
@@ -36,7 +87,7 @@ def show_application_metrics(args):
         "metric_category": "dns_host_query_detail",
         "metric_specs": [{"name": "req", "key1": f"{MALICIOUS_HOST_REGEX}"}],
         "object_type": "application",
-        "object_ids": args.object_ids,
+        "object_ids": args.application_oids,
     }
 
     data = json.dumps(body).encode("utf-8")
@@ -55,13 +106,13 @@ def show_application_metrics(args):
                 continue
             matches.append({"host": host, "count": count})
     if matches:
-        print("Found Sunburst activity in application metrics:")
+        print("Found Sunburst host indicators in application metrics:")
         pp(matches)
     else:
-        print("No Sunburst activity found in application metrics.")
+        print("No Sunburst host indicators found in application metrics.")
 
 
-def show_device_metrics(args):
+def show_device_host_metrics(args):
     """ Get all DNS Clients """
     headers = {
         "accept": "application/json",
@@ -113,9 +164,7 @@ def show_device_metrics(args):
     }
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
-        f"https://{args.target}/api/v1/metrics",
-        data=data,
-        headers=headers,
+        f"https://{args.target}/api/v1/metrics", data=data, headers=headers,
     )
     with urllib.request.urlopen(req) as resp:
         resp = json.loads(resp.read().decode("utf-8"))
@@ -134,13 +183,13 @@ def show_device_metrics(args):
     request_map = {k: v for k, v in request_map.items() if v["matches"]}
     """ print the request map """
     if request_map:
-        print("Found Sunburst activity in device metrics:")
+        print("Found Sunburst host indicators in device metrics:")
         pp(request_map)
     else:
-        print("No Sunburst activity found in device metrics.")
+        print("No Sunburst host indicators found in device metrics.")
 
 
-def show_records_link(args):
+def show_records_host_link(args):
     print("Link to records with possible Sunburst activity:")
     print("------------------------------------------------")
     # Positive times in the UI refer to the past
@@ -177,6 +226,11 @@ def main():
         help="The target appliance to query against.",
     )
     p.add_argument(
+        "--threat-list",
+        default="threats.json",
+        help="A JSON file with a list of IOC IPs",
+    )
+    p.add_argument(
         "-a",
         "--api-key",
         required=True,
@@ -209,20 +263,27 @@ def main():
         "default: %(default)s",
     )
     p.add_argument(
-        "-o",
-        "--object_ids",
+        "--device-oids",
+        default=[],
+        type=int,
+        nargs="+",
+        help="The list of numeric values that represent unique identifiers "
+        "for devices default: %(default)s",
+    )
+    p.add_argument(
+        "--application-oids",
         default=[0],
         type=int,
         nargs="+",
         help="The list of numeric values that represent unique identifiers "
-        "for networks, devices, applications, VLANs, device groups, or "
-        "activity groups. "
-        "default: %(default)s",
+        "for applications, default: %(default)s",
     )
     args = p.parse_args()
-    show_application_metrics(args)
-    show_device_metrics(args)
-    show_records_link(args)
+    if args.device_oids:
+        show_devices_ip_metrics(args)
+    show_application_host_metrics(args)
+    show_device_host_metrics(args)
+    show_records_host_link(args)
 
 
 if __name__ == "__main__":
