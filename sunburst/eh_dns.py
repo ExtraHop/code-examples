@@ -22,6 +22,23 @@ if hasattr(ssl, "_create_unverified_context"):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
+def api_request(args, path, body=None):
+    if body:
+        body = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://{args.target}/api/v1/{path}",
+        headers={
+            "accept": "application/json",
+            "Authorization": f"ExtraHop apikey={args.api_key}",
+            "Content-Type": "application/json",
+        },
+        data=body,
+    )
+    with urllib.request.urlopen(req) as rsp:
+        rsp = json.loads(rsp.read().decode("utf-8"))
+    return rsp
+
+
 def show_devices_ip_metrics(args):
     """
     Searches the target for suspicious activity by device ip metrics
@@ -30,26 +47,19 @@ def show_devices_ip_metrics(args):
     with open(args.threat_list, "r") as f:
         ti_ips = set(json.load(f))
 
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"ExtraHop apikey={args.api_key}",
-        "Content-Type": "application/json",
-    }
-    body = {
-        "cycle": args.cycle,
-        "from": args.from_time,
-        "until": args.until_time,
-        "metric_category": "net_detail",
-        "object_type": "device",
-        "metric_specs": [{"name": "bytes_out"}],
-        "object_ids": args.device_oids,
-    }
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        f"https://{args.target}/api/v1/metrics", data=data, headers=headers
+    resp = api_request(
+        args,
+        "/metrics",
+        body={
+            "cycle": args.cycle,
+            "from": args.from_time,
+            "until": args.until_time,
+            "metric_category": "net_detail",
+            "object_type": "device",
+            "metric_specs": [{"name": "bytes_out"}],
+            "object_ids": args.device_oids,
+        },
     )
-    with urllib.request.urlopen(req) as resp:
-        resp = json.loads(resp.read().decode("utf-8"))
 
     # parse the stats
     results = {oid: {"hits": []} for oid in args.device_oids}
@@ -74,12 +84,6 @@ def show_devices_ip_metrics(args):
 
 
 def show_application_host_metrics(args):
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"ExtraHop apikey={args.api_key}",
-        "Content-Type": "application/json",
-    }
-
     body = {
         "cycle": args.cycle,
         "from": args.from_time,
@@ -89,14 +93,7 @@ def show_application_host_metrics(args):
         "object_type": "application",
         "object_ids": args.application_oids,
     }
-
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        f"https://{args.target}/api/v1/metrics", data=data, headers=headers
-    )
-    with urllib.request.urlopen(req) as resp:
-        resp_data = json.loads(resp.read().decode("utf-8"))
-
+    resp_data = api_request(args, "/metrics", body=body)
     matches = []
     for stat in resp_data["stats"]:
         if stat["values"][0]:
@@ -114,29 +111,19 @@ def show_application_host_metrics(args):
 
 def show_device_host_metrics(args):
     """ Get all DNS Clients """
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"ExtraHop apikey={args.api_key}",
-        "Content-Type": "application/json",
-    }
-
-    body = {
-        "active_from": args.from_time,
-        "active_until": args.until_time,
-        "filter": {
-            "field": "activity",
-            "operand": "dns_client",
-            "operator": "=",
+    clients = api_request(
+        args,
+        "/devices/search",
+        body={
+            "active_from": args.from_time,
+            "active_until": args.until_time,
+            "filter": {
+                "field": "activity",
+                "operand": "dns_client",
+                "operator": "=",
+            },
         },
-    }
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        f"https://{args.target}/api/v1/devices/search",
-        data=data,
-        headers=headers,
     )
-    with urllib.request.urlopen(req) as resp:
-        clients = json.loads(resp.read().decode("utf-8"))
 
     """ Initialize a device to dns request map. """
     request_map = dict()
@@ -151,23 +138,21 @@ def show_device_host_metrics(args):
         oids.append(c["id"])
 
     """ Get metrics for each dns client """
-    body = {
-        "cycle": args.cycle,
-        "from": args.from_time,
-        "until": args.until_time,
-        "metric_category": "dns_client",
-        "metric_specs": [
-            {"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}
-        ],
-        "object_type": "device",
-        "object_ids": oids,
-    }
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        f"https://{args.target}/api/v1/metrics", data=data, headers=headers,
+    resp = api_request(
+        args,
+        "/metrics",
+        body={
+            "cycle": args.cycle,
+            "from": args.from_time,
+            "until": args.until_time,
+            "metric_category": "dns_client",
+            "metric_specs": [
+                {"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}
+            ],
+            "object_type": "device",
+            "object_ids": oids,
+        },
     )
-    with urllib.request.urlopen(req) as resp:
-        resp = json.loads(resp.read().decode("utf-8"))
 
     """ Parse the stats and update the device to request map """
     for stat in resp["stats"]:
