@@ -59,7 +59,7 @@ def show_devices_ip_metrics(args):
             if entry["key"]["addr"] in ti_ips:
                 results[oid]["hits"].append(
                     {
-                        "host": entry["key"]["host"],
+                        "host": entry["key"].get("host", ""),
                         "time": time_slice["time"],
                         "addr": entry["key"]["addr"],
                         "count": entry["value"],
