@@ -7,6 +7,7 @@
 import argparse
 import json
 import ssl
+import sys
 import urllib.request
 
 from pprint import pprint as pp
@@ -47,6 +48,22 @@ def show_devices_ip_metrics(args):
     with open(args.threat_list, "r") as f:
         ti_ips = set(json.load(f))
 
+    if args.device_oids:
+        oids = args.device_oids
+    else:
+        devices = api_request(
+            args,
+            "/devices/search",
+            {
+                "filter": {
+                    "field": "ipaddr",
+                    "operand": args.device_cidr,
+                    "operator": "=",
+                }
+            },
+        )
+        oids = [device["id"] for device in devices]
+
     resp = api_request(
         args,
         "/metrics",
@@ -57,12 +74,12 @@ def show_devices_ip_metrics(args):
             "metric_category": "net_detail",
             "object_type": "device",
             "metric_specs": [{"name": "bytes_out"}],
-            "object_ids": args.device_oids,
+            "object_ids": oids,
         },
     )
 
     # parse the stats
-    results = {oid: {"hits": []} for oid in args.device_oids}
+    results = {oid: {"hits": []} for oid in oids}
     for time_slice in resp["stats"]:
         oid = time_slice["oid"]
         for entry in time_slice["values"][0]:
@@ -248,6 +265,12 @@ def main():
         "default: %(default)s",
     )
     p.add_argument(
+        "--device-cidr",
+        default=None,
+        type=str,
+        help="CIDR of ExtraHop devices to query for Sunburst indicators",
+    )
+    p.add_argument(
         "--device-oids",
         default=[],
         type=int,
@@ -264,7 +287,12 @@ def main():
         "for applications, default: %(default)s",
     )
     args = p.parse_args()
-    if args.device_oids:
+    if args.device_oids and args.device_cidr:
+        print(
+            "Must specify either device oids or CIDR, not both", file=sys.stderr
+        )
+        exit(1)
+    if args.device_oids or args.device_cidr:
         show_devices_ip_metrics(args)
     show_application_host_metrics(args)
     show_device_host_metrics(args)
