@@ -32,20 +32,6 @@ def get_time_ms(dt_str):
     return int(time.mktime(dt.timetuple()) * 1000)
 
 
-def get_initial_capture_time(args, network):
-    body = {
-        "cycle": "30sec",
-        "from": -30000,
-        "until": 0,
-        "metric_category": "net",
-        "metric_specs": [{"name": "pkts"}],
-        "object_type": "network",
-        "object_ids": [network["id"]],
-    }
-    resp = api_request(args, "/metrics", body)
-    return resp["clock"]
-
-
 def get_query_intervals(from_time, until_time, interval_size):
     next_until = until_time
     next_from = until_time - interval_size + 1
@@ -439,7 +425,7 @@ def show_device_host_metrics(args, w, oids):
     ):
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
-            print(f"Devices batch {i} of {len(oids)}")
+            print(f"Devices batch {i+1}-{i+len(device_batch)} of {len(oids)}")
             # Get metrics for each device
             resp = api_request(
                 args,
