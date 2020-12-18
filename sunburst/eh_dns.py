@@ -24,9 +24,11 @@ if hasattr(ssl, "_create_unverified_context"):
 
 
 def get_current_capture_time(args):
-    body = json.dumps({"method": "bridge.getCaptureTime"}).encode("utf-8")
+    body = json.dumps({"method": "config.getCaptures", "params": [0]}).encode(
+        "utf-8"
+    )
     req = urllib.request.Request(
-        f"https://{args.target}/m/",
+        f"https://{args.target}/a/",
         headers={
             "Accept": "application/json",
             "Authorization": f"ExtraHop apikey={args.api_key}",
@@ -36,7 +38,7 @@ def get_current_capture_time(args):
     )
     with urllib.request.urlopen(req) as rsp:
         rsp = json.loads(rsp.read().decode("utf-8"))
-    return rsp["result"]
+    return max(c["publicized_time"] for c in rsp["result"])
 
 
 def get_query_intervals(from_time, until_time, interval_size):
@@ -488,7 +490,14 @@ def main():
         )
         exit(1)
 
-    capture_time = get_current_capture_time(args)
+    try:
+        capture_time = get_current_capture_time(args)
+    except Exception:
+        print(
+            "FATAL: failed to get capture time",
+            file=sys.stderr,
+        )
+        exit(1)
 
     # Converting relative FROM and UNTIL times to absolute time
     if args.from_time <= 0:
