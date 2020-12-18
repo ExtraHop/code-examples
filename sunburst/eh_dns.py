@@ -126,7 +126,7 @@ def show_device_ip_metrics(args, w, oids):
                         "name": device["display_name"],
                         "ipaddr": device["ipaddr4"] or device["ipaddr6"],
                         "macaddr": device["macaddr"],
-                        "indicator": entry["key"].get("host", ""),
+                        "indicator": entry["key"]["addr"],
                         "count": entry["value"],
                     }
                 )
