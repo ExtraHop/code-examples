@@ -290,24 +290,25 @@ def show_application_host_metrics(args, w):
     for stat in resp_data["stats"]:
         if stat["values"][0]:
             oid = stat["oid"]
-            host = stat["values"][0][0]["key"]["str"]
-            count = stat["values"][0][0]["value"]
-            if not count:
-                continue
-            found = True
-            w.writerow(
-                {
-                    "time": stat["time"],
-                    "object_type": "application",
-                    "object_id": oid,
-                    "name": "All Activity",
-                    "indicator": host,
-                    "count": count,
-                    "uri": get_application_host_uri(
-                        args, oid, stat["time"], host
-                    ),
-                }
-            )
+            for entry in stat["values"][0]:
+                host = entry["key"]["str"]
+                count = entry["value"]
+                if not count:
+                    continue
+                found = True
+                w.writerow(
+                    {
+                        "time": stat["time"],
+                        "object_type": "application",
+                        "object_id": oid,
+                        "name": "All Activity",
+                        "indicator": host,
+                        "count": count,
+                        "uri": get_application_host_uri(
+                            args, oid, stat["time"], host
+                        ),
+                    }
+                )
     if found:
         print(
             "Found Sunburst host indicators in application metrics"
@@ -341,8 +342,6 @@ def show_device_host_metrics(args, w, oids):
         for stat in resp["stats"]:
             if stat["values"][0]:
                 found = True
-                host = stat["values"][0][0]["key"]["str"]
-                count = stat["values"][0][0]["value"]
                 time = stat["time"]
                 oid = stat["oid"]
                 device = get_device(args, oid)
@@ -352,18 +351,21 @@ def show_device_host_metrics(args, w, oids):
                         file=sys.stderr,
                     )
                     continue
-                w.writerow(
-                    {
-                        "time": time,
-                        "object_type": "device",
-                        "object_id": oid,
-                        "name": device["display_name"],
-                        "ipaddr": device["ipaddr4"] or device["ipaddr6"],
-                        "macaddr": device["macaddr"],
-                        "indicator": host,
-                        "count": count,
-                    }
-                )
+                for entry in stat["values"][0]:
+                    host = entry["key"]["str"]
+                    count = entry["value"]
+                    w.writerow(
+                        {
+                            "time": time,
+                            "object_type": "device",
+                            "object_id": oid,
+                            "name": device["display_name"],
+                            "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                            "macaddr": device["macaddr"],
+                            "indicator": host,
+                            "count": count,
+                        }
+                    )
     if found:
         print(
             "Found Sunburst host indicators in device metrics"
