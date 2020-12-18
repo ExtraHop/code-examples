@@ -2,7 +2,7 @@
 
 ## sunburst_detect.py
 
-This Python script searches the ExtraHop system for the following.
+This Python script searches the ExtraHop system for the following data.
 * All DNS queries that reference the Command and Control domains associated with the SUNBURST backdoor attack, such as avsvmcloud[.]com.
 * Every time that a device on your network contacted an IP address associated with the SUNBURST backdoor attack.
 
@@ -17,7 +17,7 @@ python3 ~/sunburst_detect.py -t HOST -a API_KEY
 * *HOST*: The hostname of your ExtraHop system
 * *API_KEY*: Your API key. If you do not have an API key, see [Generate an API key](https://docs.extrahop.com/current/rest-api-guide/#generate-an-api-key).
 
-By default the script checks from now back to 2020-07-31. You can specify a different time period with the --from-time and --until-time parameters. For example, values of --from-time 2020-11-01 --until-time 2020-12-01 checks from November 1st to December 1st.
+By default the script checks from the current date to 2020-07-31. You can specify a different time period with the --from-time and --until-time parameters. For example, values of --from-time 2020-11-01 --until-time 2020-12-01 check from November 1st to December 1st.
 
 The command displays progress output similar to the following text:
 
@@ -34,7 +34,12 @@ Devices batch 200 of 6387
 ...
 ```
 
-Once the command completes, check the output CSV file (output.csv) for any DNS or IP matches:
+After the command completes, check the output CSV file (output.csv) for any DNS or IP address matches similar to the following:
+
+```
+time,object_type,object_id,name,ipaddr,macaddr,indicator,count,uri
+1608256800000,device,21167,VPN Client 10.8.16.51,10.8.16.51,,blah.avsvmcloud.com,2,
+```
 
 For more information, see [How to Hunt for, Detect, and Respond to SUNBURST](https://www.extrahop.com/company/blog/2020/detect-and-respond-to-sunburst/) and
 [Analyzing the SolarWinds Orion SUNBURST Attack Campaign For Threat Intelligence](https://www.extrahop.com/company/blog/2020/analyzing-sunburst/).
@@ -42,5 +47,3 @@ For more information, see [How to Hunt for, Detect, and Respond to SUNBURST](htt
 ## threats.json
 
 This file contains a list of suspicious IP addresses associated with the SUNBURST backdoor attack.
-
-For more information, see [Analyzing the SolarWinds Orion SUNBURST Attack Campaign For Threat Intelligence](https://www.extrahop.com/company/blog/2020/analyzing-sunburst/).
