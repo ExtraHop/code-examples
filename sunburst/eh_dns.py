@@ -117,6 +117,16 @@ def show_device_ip_metrics(args, devices):
 
 
 def show_application_host_metrics(args):
+    try:
+        oids = [
+            application["id"]
+            for application in api_request(args, "/applications")
+            if application["discovery_id"] == "_default"
+        ]
+    except urllib.error.HTTPError:
+        print("WARNING: failed to retrieve default applications")
+        return
+
     body = {
         "cycle": args.cycle,
         "from": args.from_time,
@@ -124,7 +134,7 @@ def show_application_host_metrics(args):
         "metric_category": "dns_host_query_detail",
         "metric_specs": [{"name": "req", "key1": f"{MALICIOUS_HOST_REGEX}"}],
         "object_type": "application",
-        "object_ids": args.application_oids,
+        "object_ids": oids,
     }
     resp_data = api_request(args, "/metrics", body=body)
     matches = []
@@ -278,14 +288,6 @@ def main():
         nargs="+",
         help="The list of numeric values that represent unique identifiers "
         "for devices default: %(default)s",
-    )
-    p.add_argument(
-        "--application-oids",
-        default=[0],
-        type=int,
-        nargs="+",
-        help="The list of numeric values that represent unique identifiers "
-        "for applications, default: %(default)s",
     )
     args = p.parse_args()
     if args.device_oids and args.device_cidr:
