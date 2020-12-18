@@ -263,15 +263,17 @@ def process_device_net_detail_stats(args, w, resp):
     found = False
     # parse the stats
     for stat in resp["stats"]:
+        if not stat["values"][0]:
+            continue
         oid = stat["oid"]
+        device = get_device(args, oid)
+        if not device:
+            print(
+                f"Failed to look up matching device with id {oid}",
+                file=sys.stderr,
+            )
+            continue
         for entry in stat["values"][0]:
-            device = get_device(args, oid)
-            if not device:
-                print(
-                    f"Failed to look up matching device with id {oid}",
-                    file=sys.stderr,
-                )
-                continue
             found = True
             ipaddr = entry["key"]["addr"]
             w.writerow(
@@ -312,8 +314,8 @@ def show_device_ip_metrics(args, w, oids):
                 "/metrics",
                 body={
                     "cycle": args.cycle,
-                    "from": args.from_time,
-                    "until": args.until_time,
+                    "from": from_time,
+                    "until": until_time,
                     "metric_category": "net_detail",
                     "object_type": "device",
                     "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
@@ -432,8 +434,8 @@ def show_device_host_metrics(args, w, oids):
                 "/metrics",
                 body={
                     "cycle": args.cycle,
-                    "from": args.from_time,
-                    "until": args.until_time,
+                    "from": from_time,
+                    "until": until_time,
                     "metric_category": "dns_client",
                     "metric_specs": [
                         {
