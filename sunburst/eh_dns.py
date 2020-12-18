@@ -80,33 +80,35 @@ def show_device_ip_metrics(args, devices):
     ip_regexp = ip_regexp.replace(".", "\\.")
 
     oids = [device["id"] for device in devices]
-    resp = api_request(
-        args,
-        "/metrics",
-        body={
-            "cycle": args.cycle,
-            "from": args.from_time,
-            "until": args.until_time,
-            "metric_category": "net_detail",
-            "object_type": "device",
-            "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
-            "object_ids": oids,
-        },
-    )
+    for i in range(0, len(oids), args.oid_batch_size):
+        device_batch = oids[i : min(i + args.oid_batch_size, len(oids))]
+        resp = api_request(
+            args,
+            "/metrics",
+            body={
+                "cycle": args.cycle,
+                "from": args.from_time,
+                "until": args.until_time,
+                "metric_category": "net_detail",
+                "object_type": "device",
+                "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
+                "object_ids": device_batch,
+            },
+        )
 
-    # parse the stats
-    results = {oid: {"hits": []} for oid in oids}
-    for time_slice in resp["stats"]:
-        oid = time_slice["oid"]
-        for entry in time_slice["values"][0]:
-            results[oid]["hits"].append(
-                {
-                    "host": entry["key"].get("host", ""),
-                    "time": time_slice["time"],
-                    "addr": entry["key"]["addr"],
-                    "count": entry["value"],
-                }
-            )
+        # parse the stats
+        results = {oid: {"hits": []} for oid in oids}
+        for time_slice in resp["stats"]:
+            oid = time_slice["oid"]
+            for entry in time_slice["values"][0]:
+                results[oid]["hits"].append(
+                    {
+                        "host": entry["key"].get("host", ""),
+                        "time": time_slice["time"],
+                        "addr": entry["key"]["addr"],
+                        "count": entry["value"],
+                    }
+                )
 
     results = {k: v for k, v in results.items() if v["hits"]}
     if results:
@@ -274,6 +276,13 @@ def main():
         help="The aggregation period for metrics. Supported values: "
         "'auto', '1sec', '30sec', '5min', '1hr', '24hr'. "
         "default: %(default)s",
+    )
+    p.add_argument(
+        "--oid-batch-size",
+        type=int,
+        default=50,
+        help="Dictates the OID batch size to use for device "
+        "queries default: %(default)s",
     )
     p.add_argument(
         "--device-cidr",
