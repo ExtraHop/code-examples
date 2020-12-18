@@ -40,6 +40,7 @@ def api_request(args, path, body=None):
 
 
 device_cache = {}
+appliance_id_cache = {}
 
 
 def get_device(args, oid):
@@ -76,6 +77,95 @@ def get_device_oids_by_cidr(args):
         return oids
     except urllib.error.HTTPError:
         return []
+
+
+def get_appliance_id(args, node_id):
+    global appliance_id_cache
+    if node_id in appliance_id_cache:
+        return appliance_id_cache[node_id]
+    try:
+        appliance = api_request(args, f"/appliances/{node_id}")
+    except urllib.error.HTTPError:
+        return None
+    appliance_id = appliance["uuid"].replace("-", "")
+    appliance_id_cache[node_id] = appliance_id
+    return appliance_id
+
+
+def get_uri_interval(stat_time):
+    # Subtract 6 hours for context
+    # NB: UI uses seconds for absolute intervals
+    from_time = (stat_time - (6 * 60 * 60 * 1000)) // 1000
+    until_time = stat_time // 1000
+    return (from_time, until_time)
+
+
+def get_device_host_uri(args, oid, time, host):
+    from_time, until_time = get_uri_interval(time)
+    device = get_device(args, oid)
+    node_id = oid >> 32
+    device_id = device["discovery_id"]
+    appliance_id = get_appliance_id(args, node_id)
+    if not appliance_id:
+        return None
+    return (
+        f"https://{args.target}/extrahop/#/metrics/devices/"
+        f"{appliance_id}.{device_id}/dns-client"
+        "?d.drilldown=Host%20Query&d.metric=extrahop.device.dns_client%3Areq"
+        f"&d.sources%5B0%5D.applianceId={appliance_id}"
+        f"&d.sources%5B0%5D.discoveryId={device_id}"
+        "&d.sources%5B0%5D.objectType=device"
+        f"&d.tagFilters%5B0%5D.operand={host}"
+        "&d.tagFilters%5B0%5D.operator=matches"
+        "&d.tagFilters%5B0%5D.subject=label%3AHost%20Query"
+        f"&d.v=7.2&delta_type&from={from_time}&interval_type=DT"
+        f"&sites%5B0%5D=any&until={until_time}"
+    )
+
+
+def get_device_ip_uri(args, oid, time, ip):
+    from_time, until_time = get_uri_interval(time)
+    device = get_device(args, oid)
+    node_id = oid >> 32
+    device_id = device["discovery_id"]
+    appliance_id = get_appliance_id(args, node_id)
+    if not appliance_id:
+        return None
+    return (
+        f"https://{args.target}/extrahop/#/metrics"
+        f"/devices/{appliance_id}.{device_id}"
+        "/network?d.drilldown=IP&d.metric=extrahop.device.net%3Abytes_in"
+        "&d.sort.direction=desc"
+        "&d.sort.field=metric%3Anet_detail%3Abytes_out.count.null%2Fbase"
+        f"&d.sources%5B0%5D.applianceId={appliance_id}"
+        f"&d.sources%5B0%5D.discoveryId={device_id}"
+        f"&d.tagFilters%5B0%5D.operand={ip}&d.tagFilters%5B0%5D.operator=matches"
+        "&d.tagFilters%5B0%5D.subject=special%3AIP%20Address&d.v=7.2&delta_type"
+        "&d.sources%5B0%5D.objectType=device"
+        f"&interval_type=DT&from={from_time}&until={until_time}"
+        f"&sites%5B0%5D=any"
+    )
+
+
+def get_application_host_uri(args, oid, time, host):
+    from_time, until_time = get_uri_interval(time)
+    node_id = oid >> 32
+    appliance_id = get_appliance_id(args, node_id)
+    if not appliance_id:
+        return None
+    return (
+        f"https://{args.target}/extrahop/#/metrics/applications/"
+        f"{appliance_id}._default/dns"
+        "?d.drilldown=Host%20Query&d.metric=extrahop.application.dns%3Arsp"
+        f"&d.sources%5B0%5D.applianceId={appliance_id}"
+        "&d.sources%5B0%5D.discoveryId=_default"
+        "&d.sources%5B0%5D.objectType=application"
+        f"&d.tagFilters%5B0%5D.operand={host}"
+        "&d.tagFilters%5B0%5D.operator=matches"
+        "&d.tagFilters%5B0%5D.subject=label%3AHost%20Query"
+        f"&d.v=7.2&delta_type&from={from_time}&interval_type=DT"
+        f"&sites%5B0%5D=any&until={until_time}"
+    )
 
 
 def show_device_ip_metrics(args, w, oids):
@@ -118,6 +208,7 @@ def show_device_ip_metrics(args, w, oids):
                     )
                     continue
                 found = True
+                ipaddr = entry["key"]["addr"]
                 w.writerow(
                     {
                         "time": time_slice["time"],
@@ -126,8 +217,11 @@ def show_device_ip_metrics(args, w, oids):
                         "name": device["display_name"],
                         "ipaddr": device["ipaddr4"] or device["ipaddr6"],
                         "macaddr": device["macaddr"],
-                        "indicator": entry["key"]["addr"],
+                        "indicator": ipaddr,
                         "count": entry["value"],
+                        "uri": get_device_ip_uri(
+                            args, oid, time_slice["time"], ipaddr
+                        ),
                     }
                 )
 
@@ -176,6 +270,9 @@ def show_application_host_metrics(args, w):
                     "name": "All Activity",
                     "indicator": host,
                     "count": count,
+                    "uri": get_application_host_uri(
+                        args, oid, stat["time"], host
+                    ),
                 }
             )
     if found:
@@ -231,6 +328,7 @@ def show_device_host_metrics(args, w, oids):
                     "macaddr": device["macaddr"],
                     "indicator": host,
                     "count": count,
+                    "uri": get_device_host_uri(args, oid, time, host),
                 }
             )
 
@@ -371,6 +469,7 @@ def main():
                 "macaddr",
                 "indicator",
                 "count",
+                "uri",
             ],
         )
         w.writeheader()
