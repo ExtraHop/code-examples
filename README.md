@@ -6,6 +6,12 @@ This repository includes example scripts that configure and automate interaction
 
 This repository contains the following example scripts.
 
+### bash-rx360-auth
+
+This Bash script generates a temporary API access token with the cURL command and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
+
+For more information, see [Authenticate with the Reveal(x) 360 REST API](https://docs.dev.extrahop.com/current/rest-rx360-auth/)
+
 ### create-backup
 
 This Python script creates backups of ExtraHop system customizations, such as bundles, triggers, dashboards, and users through the REST API. The script creates the backups on the ExtraHop system and then downloads each backup to the local machine.
@@ -17,6 +23,12 @@ For more information, see [Back up the ExtraHop system through the REST API](htt
 This Python script creates device groups through the REST API. The script creates each device group by reading a list of IP addresses and CIDR blocks from a CSV file.
 
 For more information, see [Create a device group through the REST API](https://docs.extrahop.com/current/rest-create-device-group/).
+
+### py-rx360-auth
+
+This Python script generates a temporary API access token and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
+
+For more information, see [Authenticate with the Reveal(x) 360 REST API](https://docs.dev.extrahop.com/current/rest-rx360-auth/)
 
 ### self-managed-sensor-rx360-connect
 
