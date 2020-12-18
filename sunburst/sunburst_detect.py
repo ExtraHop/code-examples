@@ -336,11 +336,7 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
                 args, w, resp, process_device_net_detail_stats
             )
 
-    if found:
-        print(
-            "Found Sunburst IP indicators in device metrics"
-            f" (see {args.output})."
-        )
+    return found
 
 
 def show_application_host_metrics(args, w):
@@ -368,12 +364,7 @@ def show_application_host_metrics(args, w):
     resp_data = api_request(args, "/metrics", body=body)
 
     found = for_each_eda(args, w, resp_data, process_application_host_stats)
-
-    if found:
-        print(
-            "Found Sunburst host indicators in application metrics"
-            f" (see {args.output})."
-        )
+    return found
 
 
 def process_device_dns_host_stats(args, w, resp):
@@ -466,11 +457,7 @@ def show_device_host_metrics(args, w, oids):
             )
             found |= for_each_eda(args, w, resp, process_device_dns_host_stats)
 
-    if found:
-        print(
-            "Found Sunburst host indicators in device metrics"
-            f" (see {args.output})."
-        )
+    return found
 
 
 def show_records_host_link(args):
@@ -624,6 +611,10 @@ def main():
         device_oids = get_all_active_devices(args)
     print(f"Querying against {len(device_oids)} devices")
 
+    f_found_app_host = False
+    f_found_device_host = False
+    f_found_device_ip = False
+
     with open(args.output, "w") as csvfile:
         w = csv.DictWriter(
             csvfile,
@@ -640,15 +631,35 @@ def main():
             ],
         )
         w.writeheader()
-        show_application_host_metrics(args, w)
+        f_found_app_host = show_application_host_metrics(args, w)
         if device_oids:
-            show_device_host_metrics(args, w, device_oids)
-            show_device_ip_metrics(args, w, ti_ips, device_oids)
+            f_found_device_host = show_device_host_metrics(args, w, device_oids)
+            f_found_device_ip = show_device_ip_metrics(
+                args, w, ti_ips, device_oids
+            )
         else:
             print(
                 "WARNING: found no devices on which to query metrics",
                 file=sys.stderr,
             )
+
+    if f_found_app_host or f_found_device_host or f_found_device_ip:
+        print("------------------------------------------------")
+    if f_found_app_host:
+        print(
+            "Found Sunburst host indicators in application metrics"
+            f" (see {args.output})."
+        )
+    if f_found_device_host:
+        print(
+            "Found Sunburst host indicators in device metrics"
+            f" (see {args.output})."
+        )
+    if f_found_device_ip:
+        print(
+            "Found Sunburst IP indicators in device metrics"
+            f" (see {args.output})."
+        )
     if args.show_records_link:
         show_records_host_link(args)
 
