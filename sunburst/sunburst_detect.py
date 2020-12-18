@@ -5,11 +5,15 @@
 
 #!/usr/bin/env python
 import argparse
+import datetime
 import csv
 import json
 import ssl
 import sys
 import urllib.request
+import time
+
+from urllib.parse import urlencode
 
 DAY_MS = 86400000
 
@@ -23,22 +27,23 @@ if hasattr(ssl, "_create_unverified_context"):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def get_current_capture_time(args):
-    body = json.dumps({"method": "config.getCaptures", "params": [0]}).encode(
-        "utf-8"
-    )
-    req = urllib.request.Request(
-        f"https://{args.target}/a/",
-        headers={
-            "Accept": "application/json",
-            "Authorization": f"ExtraHop apikey={args.api_key}",
-            "Content-Type": "application/json",
-        },
-        data=body,
-    )
-    with urllib.request.urlopen(req) as rsp:
-        rsp = json.loads(rsp.read().decode("utf-8"))
-    return max(c["publicized_time"] for c in rsp["result"])
+def get_time_ms(dt_str):
+    dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d")
+    return int(time.mktime(dt.timetuple()) * 1000)
+
+
+def get_initial_capture_time(args, network):
+    body = {
+        "cycle": "30sec",
+        "from": -30000,
+        "until": 0,
+        "metric_category": "net",
+        "metric_specs": [{"name": "pkts"}],
+        "object_type": "network",
+        "object_ids": [network["id"]],
+    }
+    resp = api_request(args, "/metrics", body)
+    return resp["clock"]
 
 
 def get_query_intervals(from_time, until_time, interval_size):
@@ -53,7 +58,7 @@ def get_query_intervals(from_time, until_time, interval_size):
         remaining -= interval_size
 
 
-def api_request(args, path, body=None):
+def api_request(args, path, body=None, method=None):
     if body:
         body = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
@@ -65,6 +70,8 @@ def api_request(args, path, body=None):
         },
         data=body,
     )
+    if method:
+        req.method = method
     with urllib.request.urlopen(req) as rsp:
         rsp = json.loads(rsp.read().decode("utf-8"))
     return rsp
@@ -84,6 +91,73 @@ def get_device(args, oid):
         return device
     except urllib.error.HTTPError:
         return None
+
+
+def process_application_host_stats(args, w, resp_data):
+    stats = resp_data.get("stats", [])
+    print(f"Processing {len(stats)} stats")
+    found = False
+    for stat in stats:
+        if not stat["values"][0]:
+            continue
+        oid = stat["oid"]
+        for entry in stat["values"][0]:
+            host = entry["key"]["str"]
+            count = entry["value"]
+            if not count:
+                continue
+            found = True
+            w.writerow(
+                {
+                    "time": stat["time"],
+                    "object_type": "application",
+                    "object_id": oid,
+                    "name": "All Activity",
+                    "indicator": host,
+                    "count": count,
+                    "uri": get_application_host_uri(
+                        args, oid, stat["time"], host
+                    ),
+                }
+            )
+    return found
+
+
+def get_all_active_devices(args):
+    print(
+        "Getting all active devices between "
+        f"{args.from_time} - {args.until_time}"
+    )
+    global device_cache
+    LIMIT = 1000
+    offset = 0
+    oids = []
+    while True:
+        try:
+            body = {
+                "active_from": args.from_time,
+                "active_until": args.until_time,
+                "limit": LIMIT,
+                "offset": offset,
+            }
+            devices = api_request(
+                args, f"/devices?{urlencode(body)}", method="GET"
+            )
+            if len(devices) == 0:
+                break
+
+            for device in devices:
+                oid = device["id"]
+                oids.append(oid)
+                device_cache[oid] = device
+
+            print(f"Requesting {offset}")
+
+            offset += len(devices)
+        except urllib.error.HTTPError as e:
+            print(f"ERROR retrieving /devices {str(e)}")
+            return oids
+    return oids
 
 
 def get_device_oids_by_cidr(args):
@@ -199,6 +273,37 @@ def get_application_host_uri(args, oid, time, host):
     )
 
 
+def process_device_net_detail_stats(args, w, resp):
+    found = False
+    # parse the stats
+    for stat in resp["stats"]:
+        oid = stat["oid"]
+        for entry in stat["values"][0]:
+            device = get_device(args, oid)
+            if not device:
+                print(
+                    f"Failed to look up matching device with id {oid}",
+                    file=sys.stderr,
+                )
+                continue
+            found = True
+            ipaddr = entry["key"]["addr"]
+            w.writerow(
+                {
+                    "time": stat["time"],
+                    "object_type": "device",
+                    "object_id": oid,
+                    "name": device["display_name"],
+                    "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                    "macaddr": device["macaddr"],
+                    "indicator": ipaddr,
+                    "count": entry["value"],
+                    "uri": get_device_ip_uri(args, oid, stat["time"], ipaddr),
+                }
+            )
+    return found
+
+
 def show_device_ip_metrics(args, w, oids):
     """
     Searches the target for suspicious activity by device ip metrics
@@ -215,7 +320,7 @@ def show_device_ip_metrics(args, w, oids):
         args.from_time, args.until_time, args.query_batch_size
     ):
         for i in range(0, len(oids), args.oid_batch_size):
-            device_batch = oids[i : min(i + args.oid_batch_size, len(oids))]
+            device_batch = oids[i : i + args.oid_batch_size]
             resp = api_request(
                 args,
                 "/metrics",
@@ -229,35 +334,10 @@ def show_device_ip_metrics(args, w, oids):
                     "object_ids": device_batch,
                 },
             )
+            found |= for_each_eda(
+                args, w, resp, process_device_net_detail_stats
+            )
 
-        # parse the stats
-        for stat in resp["stats"]:
-            oid = stat["oid"]
-            for entry in stat["values"][0]:
-                device = get_device(args, oid)
-                if not device:
-                    print(
-                        f"Failed to look up matching device with id {oid}",
-                        file=sys.stderr,
-                    )
-                    continue
-                found = True
-                ipaddr = entry["key"]["addr"]
-                w.writerow(
-                    {
-                        "time": stat["time"],
-                        "object_type": "device",
-                        "object_id": oid,
-                        "name": device["display_name"],
-                        "ipaddr": device["ipaddr4"] or device["ipaddr6"],
-                        "macaddr": device["macaddr"],
-                        "indicator": ipaddr,
-                        "count": entry["value"],
-                        "uri": get_device_ip_uri(
-                            args, oid, stat["time"], ipaddr
-                        ),
-                    }
-                )
     if found:
         print(
             "Found Sunburst IP indicators in device metrics"
@@ -266,6 +346,7 @@ def show_device_ip_metrics(args, w, oids):
 
 
 def show_application_host_metrics(args, w):
+    print("Fetching application host metrics.")
     found = False
     try:
         oids = [
@@ -287,28 +368,9 @@ def show_application_host_metrics(args, w):
         "object_ids": oids,
     }
     resp_data = api_request(args, "/metrics", body=body)
-    for stat in resp_data["stats"]:
-        if stat["values"][0]:
-            oid = stat["oid"]
-            for entry in stat["values"][0]:
-                host = entry["key"]["str"]
-                count = entry["value"]
-                if not count:
-                    continue
-                found = True
-                w.writerow(
-                    {
-                        "time": stat["time"],
-                        "object_type": "application",
-                        "object_id": oid,
-                        "name": "All Activity",
-                        "indicator": host,
-                        "count": count,
-                        "uri": get_application_host_uri(
-                            args, oid, stat["time"], host
-                        ),
-                    }
-                )
+
+    found = for_each_eda(args, w, resp_data, process_application_host_stats)
+
     if found:
         print(
             "Found Sunburst host indicators in application metrics"
@@ -316,56 +378,89 @@ def show_application_host_metrics(args, w):
         )
 
 
+def process_device_dns_host_stats(args, w, resp):
+    found = False
+    for stat in resp["stats"]:
+        if stat["values"][0]:
+            found = True
+            time = stat["time"]
+            oid = stat["oid"]
+            device = get_device(args, oid)
+            if not device:
+                print(
+                    f"Failed to look up matching device with id {oid}",
+                    file=sys.stderr,
+                )
+                continue
+            for entry in stat["values"][0]:
+                host = entry["key"]["str"]
+                count = entry["value"]
+                w.writerow(
+                    {
+                        "time": time,
+                        "object_type": "device",
+                        "object_id": oid,
+                        "name": device["display_name"],
+                        "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                        "macaddr": device["macaddr"],
+                        "indicator": host,
+                        "count": count,
+                    }
+                )
+    return found
+
+
+def for_each_eda(args, w, first_metrics_resp, process_fn):
+    found = False
+    xid = first_metrics_resp.get("xid")
+    if xid is not None:
+        # running on an ECA
+        eda_count = first_metrics_resp.get("num_results", 0)
+        for i in range(eda_count):
+            print(f"Requesting Data from EDA {i+1}/{eda_count}... Please Wait")
+            while True:
+                resp_data = api_request(
+                    args, f"/metrics/next/{xid}", method="GET"
+                )
+                if resp_data != "again":
+                    break
+                time.sleep(0.05)
+            eda_found = process_fn(args, w, resp_data)
+            found |= eda_found
+    else:
+        found = process_fn(args, w, first_metrics_resp)
+    return found
+
+
 def show_device_host_metrics(args, w, oids):
     found = False
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
-        # Get metrics for each device
-        resp = api_request(
-            args,
-            "/metrics",
-            body={
-                "cycle": args.cycle,
-                "from": args.from_time,
-                "until": args.until_time,
-                "metric_category": "dns_client",
-                "metric_specs": [
-                    {"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}
-                ],
-                "object_type": "device",
-                "object_ids": oids,
-            },
-        )
-
-        # Process matches
-        for stat in resp["stats"]:
-            if stat["values"][0]:
-                found = True
-                time = stat["time"]
-                oid = stat["oid"]
-                device = get_device(args, oid)
-                if not device:
-                    print(
-                        f"Failed to look up matching device with id {oid}",
-                        file=sys.stderr,
-                    )
-                    continue
-                for entry in stat["values"][0]:
-                    host = entry["key"]["str"]
-                    count = entry["value"]
-                    w.writerow(
+        for i in range(0, len(oids), args.oid_batch_size):
+            device_batch = oids[i : i + args.oid_batch_size]
+            print(f"Devices batch {i} of {len(oids)}")
+            # Get metrics for each device
+            resp = api_request(
+                args,
+                "/metrics",
+                body={
+                    "cycle": args.cycle,
+                    "from": args.from_time,
+                    "until": args.until_time,
+                    "metric_category": "dns_client",
+                    "metric_specs": [
                         {
-                            "time": time,
-                            "object_type": "device",
-                            "object_id": oid,
-                            "name": device["display_name"],
-                            "ipaddr": device["ipaddr4"] or device["ipaddr6"],
-                            "macaddr": device["macaddr"],
-                            "indicator": host,
-                            "count": count,
+                            "name": "host_query",
+                            "key1": f"{MALICIOUS_HOST_REGEX}",
                         }
-                    )
+                    ],
+                    "object_type": "device",
+                    "object_ids": device_batch,
+                },
+            )
+            found |= for_each_eda(args, w, resp, process_device_dns_host_stats)
+
     if found:
         print(
             "Found Sunburst host indicators in device metrics"
@@ -422,20 +517,18 @@ def main():
     p.add_argument(
         "-f",
         "--from-time",
-        default=-1 * DAY_MS * 7 * 20,
-        type=int,
-        help="The beginning timestamp for the request. Time is expressed in "
-        "milliseconds since the epoch. 0 indicates the time of the request. "
-        "A negative value is evaluated relative to the current time. "
+        default="2020-07-31",
+        type=str,
+        help="The beginning date for the request. Expressed as YYYY-MM-DD "
         "default: %(default)s",
     )
     p.add_argument(
         "-u",
         "--until-time",
-        default=0,
-        help="The ending timestamp for the request. Return "
+        default=None,
+        help="The ending date for the request. Return "
         "only metrics collected before this time. Follows the same time value "
-        "guidelines as the from parameter. "
+        "guidelines as the from parameter. If unspecified, default to now."
         "default: %(default)s",
     )
     p.add_argument(
@@ -449,7 +542,7 @@ def main():
     p.add_argument(
         "--oid-batch-size",
         type=int,
-        default=50,
+        default=200,
         help="Dictates the OID batch size to use for device "
         "queries default: %(default)s",
     )
@@ -492,25 +585,28 @@ def main():
         )
         exit(1)
 
+    # Convert string times to milliseconds since epoch
     try:
-        capture_time = get_current_capture_time(args)
-    except Exception:
-        print(
-            "FATAL: failed to get capture time",
-            file=sys.stderr,
-        )
+        args.from_time = get_time_ms(args.from_time)
+    except:
+        print("FATAL: invalid from time", args.from_time, file=sys.stderr)
         exit(1)
-
-    # Converting relative FROM and UNTIL times to absolute time
-    if args.from_time <= 0:
-        args.from_time = capture_time + args.from_time
-    if args.until_time <= 0:
-        args.until_time = capture_time + args.until_time
+    if args.until_time:
+        try:
+            args.until_time = get_time_ms(args.until_time)
+        except:
+            print("FATAL: invalid until time", args.until_time, file=sys.stderr)
+            exit(1)
+    else:
+        args.until_time = int(time.time() * 1000)
 
     if args.device_cidr:
         device_oids = get_device_oids_by_cidr(args)
-    else:
+    elif args.device_oids:
         device_oids = args.device_oids
+    else:
+        device_oids = get_all_active_devices(args)
+    print(f"Querying against {len(device_oids)} devices")
 
     with open(args.output, "w") as csvfile:
         w = csv.DictWriter(
@@ -537,7 +633,6 @@ def main():
                 "WARNING: found no devices on which to query metrics",
                 file=sys.stderr,
             )
-
     if args.show_records_link:
         show_records_host_link(args)
 
