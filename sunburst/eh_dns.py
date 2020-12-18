@@ -329,6 +329,7 @@ def main():
             ],
         )
         w.writeheader()
+        show_application_host_metrics(args, w)
         if device_oids:
             show_device_host_metrics(args, w, device_oids)
             show_device_ip_metrics(args, w, device_oids)
@@ -337,7 +338,6 @@ def main():
                 "WARNING: found no devices on which to query metrics",
                 file=sys.stderr,
             )
-        show_application_host_metrics(args, w)
 
     if args.show_records_link:
         show_records_host_link(args)
