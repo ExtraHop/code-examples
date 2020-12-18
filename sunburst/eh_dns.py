@@ -299,6 +299,12 @@ def main():
         type=str,
         help="File to write matches (CSV), default: %(default)s",
     )
+    p.add_argument(
+        "--show-records-link",
+        action="store_true",
+        help="Print a link to records in specified time interval"
+        "(default %(default)s",
+    )
     args = p.parse_args()
     if args.device_oids and args.device_cidr:
         print(
@@ -332,6 +338,8 @@ def main():
                 file=sys.stderr,
             )
         show_application_host_metrics(args, w)
+
+    if args.show_records_link:
         show_records_host_link(args)
 
 
