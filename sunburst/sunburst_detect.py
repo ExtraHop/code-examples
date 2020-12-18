@@ -8,6 +8,7 @@ import argparse
 import datetime
 import csv
 import json
+import os
 import ssl
 import sys
 import urllib.request
@@ -296,13 +297,10 @@ def process_device_net_detail_stats(args, w, resp):
     return found
 
 
-def show_device_ip_metrics(args, w, oids):
+def show_device_ip_metrics(args, w, ti_ips, oids):
     """
     Searches the target for suspicious activity by device ip metrics
     """
-    # load in the suspect ip addresses file
-    with open(args.threat_list, "r") as f:
-        ti_ips = json.load(f)
     found = False
 
     ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
@@ -592,6 +590,17 @@ def main():
     else:
         args.until_time = int(time.time() * 1000)
 
+    # load in the suspect ip addresses file
+    if not os.path.exists(args.threat_list):
+        print("FATAL: threat list", args.threat_list, "does not exist")
+        exit(1)
+    with open(args.threat_list, "r") as f:
+        try:
+            ti_ips = json.load(f)
+        except:
+            print("FATAL: invalid threat list file", args.threat_list)
+            exit(1)
+
     if args.device_cidr:
         device_oids = get_device_oids_by_cidr(args)
     elif args.device_oids:
@@ -619,7 +628,7 @@ def main():
         show_application_host_metrics(args, w)
         if device_oids:
             show_device_host_metrics(args, w, device_oids)
-            show_device_ip_metrics(args, w, device_oids)
+            show_device_ip_metrics(args, w, ti_ips, device_oids)
         else:
             print(
                 "WARNING: found no devices on which to query metrics",
