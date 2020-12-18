@@ -309,8 +309,16 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
+        print(
+            "Getting device IP metrics: "
+            f"{tstr(from_time)} - {tstr(from_time)}"
+        )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
+            print(
+                f" getting metrics for {i + 1}-{i + len(device_batch)} "
+                f"of {len(oids)} devices"
+            )
             resp = api_request(
                 args,
                 "/metrics",
@@ -427,9 +435,16 @@ def show_device_host_metrics(args, w, oids):
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
+        print(
+            "Getting device host metrics: "
+            f"{tstr(from_time)} - {tstr(from_time)}"
+        )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
-            print(f"Devices batch {i+1}-{i+len(device_batch)} of {len(oids)}")
+            print(
+                f" getting metrics for {i + 1}-{i + len(device_batch)} "
+                f"of {len(oids)} devices"
+            )
             # Get metrics for each device
             resp = api_request(
                 args,
