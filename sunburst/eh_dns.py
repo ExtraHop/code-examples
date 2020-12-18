@@ -39,35 +39,25 @@ def api_request(args, path, body=None):
     return rsp
 
 
-def get_devices(args):
-    if args.device_oids:
-        devices = []
-        for oid in args.device_oids:
-            try:
-                device = api_request(args, f"/devices/{oid}")
-            except urllib.error.HTTPError:
-                print(f"WARNING: failed to find device {oid}")
-                continue
-            devices.append(device)
-    else:
-        try:
-            devices = api_request(
-                args,
-                "/devices/search",
-                {
-                    "filter": {
-                        "field": "ipaddr",
-                        "operand": args.device_cidr,
-                        "operator": "=",
-                    }
-                },
-            )
-        except urllib.error.HTTPError:
-            return []
-    return devices
+def get_device_oids_by_cidr(args):
+    try:
+        devices = api_request(
+            args,
+            "/devices/search",
+            {
+                "filter": {
+                    "field": "ipaddr",
+                    "operand": args.device_cidr,
+                    "operator": "=",
+                }
+            },
+        )
+        return [device["id"] for device in devices]
+    except urllib.error.HTTPError:
+        return []
 
 
-def show_device_ip_metrics(args, w, devices):
+def show_device_ip_metrics(args, w, oids):
     """
     Searches the target for suspicious activity by device ip metrics
     """
@@ -79,7 +69,6 @@ def show_device_ip_metrics(args, w, devices):
     ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
     ip_regexp = ip_regexp.replace(".", "\\.")
 
-    oids = [device["id"] for device in devices]
     for i in range(0, len(oids), args.oid_batch_size):
         device_batch = oids[i : min(i + args.oid_batch_size, len(oids))]
         resp = api_request(
@@ -164,10 +153,9 @@ def show_application_host_metrics(args, w):
         )
 
 
-def show_device_host_metrics(args, w, devices):
+def show_device_host_metrics(args, w, oids):
     """ Initialize a device to dns request map. """
     found = False
-    oids = [device["id"] for device in devices]
 
     # Get metrics for each device
     resp = api_request(
@@ -318,6 +306,11 @@ def main():
         )
         exit(1)
 
+    if args.device_cidr:
+        device_oids = get_device_oids_by_cidr(args)
+    else:
+        device_oids = args.device_oids
+
     with open(args.output, "w") as csvfile:
         w = csv.DictWriter(
             csvfile,
@@ -330,16 +323,14 @@ def main():
             ],
         )
         w.writeheader()
-        if args.device_oids or args.device_cidr:
-            devices = get_devices(args)
-            if devices:
-                show_device_host_metrics(args, w, devices)
-                show_device_ip_metrics(args, w, devices)
-            else:
-                print(
-                    "WARNING: found no devices with specified criteria",
-                    file=sys.stderr,
-                )
+        if device_oids:
+            show_device_host_metrics(args, w, device_oids)
+            show_device_ip_metrics(args, w, device_oids)
+        else:
+            print(
+                "WARNING: found no devices on which to query metrics",
+                file=sys.stderr,
+            )
         show_application_host_metrics(args, w)
         show_records_host_link(args)
 
