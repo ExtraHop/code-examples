@@ -283,7 +283,6 @@ def show_application_host_metrics(args, w):
 
 
 def show_device_host_metrics(args, w, oids):
-    """ Initialize a device to dns request map. """
     found = False
 
     # Get metrics for each device
