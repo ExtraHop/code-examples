@@ -11,6 +11,7 @@ import ssl
 import sys
 import urllib.request
 
+DAY_MS = 86400000
 
 MALICIOUS_HOST_REGEX = (
     "/\\.(avsvmcloud|freescanonline|deftsecurity|thedoccloud|incomeupdate"
@@ -20,6 +21,34 @@ MALICIOUS_HOST_REGEX = (
 
 if hasattr(ssl, "_create_unverified_context"):
     ssl._create_default_https_context = ssl._create_unverified_context
+
+
+def get_current_capture_time(args):
+    body = json.dumps({"method": "bridge.getCaptureTime"}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://{args.target}/m/",
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"ExtraHop apikey={args.api_key}",
+            "Content-Type": "application/json",
+        },
+        data=body,
+    )
+    with urllib.request.urlopen(req) as rsp:
+        rsp = json.loads(rsp.read().decode("utf-8"))
+    return rsp["result"]
+
+
+def get_query_intervals(from_time, until_time, interval_size):
+    next_until = until_time
+    next_from = until_time - interval_size + 1
+    remaining = (until_time - from_time) - interval_size
+
+    while remaining >= 0:
+        yield (next_from, next_until)
+        next_until = next_until - interval_size
+        next_from = max(next_from - interval_size, from_time)
+        remaining -= interval_size
 
 
 def api_request(args, path, body=None):
@@ -180,21 +209,24 @@ def show_device_ip_metrics(args, w, oids):
     ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
     ip_regexp = ip_regexp.replace(".", "\\.")
 
-    for i in range(0, len(oids), args.oid_batch_size):
-        device_batch = oids[i : min(i + args.oid_batch_size, len(oids))]
-        resp = api_request(
-            args,
-            "/metrics",
-            body={
-                "cycle": args.cycle,
-                "from": args.from_time,
-                "until": args.until_time,
-                "metric_category": "net_detail",
-                "object_type": "device",
-                "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
-                "object_ids": device_batch,
-            },
-        )
+    for from_time, until_time in get_query_intervals(
+        args.from_time, args.until_time, args.query_batch_size
+    ):
+        for i in range(0, len(oids), args.oid_batch_size):
+            device_batch = oids[i : min(i + args.oid_batch_size, len(oids))]
+            resp = api_request(
+                args,
+                "/metrics",
+                body={
+                    "cycle": args.cycle,
+                    "from": args.from_time,
+                    "until": args.until_time,
+                    "metric_category": "net_detail",
+                    "object_type": "device",
+                    "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
+                    "object_ids": device_batch,
+                },
+            )
 
         # parse the stats
         for stat in resp["stats"]:
@@ -224,7 +256,6 @@ def show_device_ip_metrics(args, w, oids):
                         ),
                     }
                 )
-
     if found:
         print(
             "Found Sunburst IP indicators in device metrics"
@@ -284,53 +315,53 @@ def show_application_host_metrics(args, w):
 
 def show_device_host_metrics(args, w, oids):
     found = False
+    for from_time, until_time in get_query_intervals(
+        args.from_time, args.until_time, args.query_batch_size
+    ):
+        # Get metrics for each device
+        resp = api_request(
+            args,
+            "/metrics",
+            body={
+                "cycle": args.cycle,
+                "from": args.from_time,
+                "until": args.until_time,
+                "metric_category": "dns_client",
+                "metric_specs": [
+                    {"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}
+                ],
+                "object_type": "device",
+                "object_ids": oids,
+            },
+        )
 
-    # Get metrics for each device
-    resp = api_request(
-        args,
-        "/metrics",
-        body={
-            "cycle": args.cycle,
-            "from": args.from_time,
-            "until": args.until_time,
-            "metric_category": "dns_client",
-            "metric_specs": [
-                {"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}
-            ],
-            "object_type": "device",
-            "object_ids": oids,
-        },
-    )
-
-    # Process matches
-    for stat in resp["stats"]:
-        if stat["values"][0]:
-            found = True
-            host = stat["values"][0][0]["key"]["str"]
-            count = stat["values"][0][0]["value"]
-            time = stat["time"]
-            oid = stat["oid"]
-            device = get_device(args, oid)
-            if not device:
-                print(
-                    f"Failed to look up matching device with id {oid}",
-                    file=sys.stderr,
+        # Process matches
+        for stat in resp["stats"]:
+            if stat["values"][0]:
+                found = True
+                host = stat["values"][0][0]["key"]["str"]
+                count = stat["values"][0][0]["value"]
+                time = stat["time"]
+                oid = stat["oid"]
+                device = get_device(args, oid)
+                if not device:
+                    print(
+                        f"Failed to look up matching device with id {oid}",
+                        file=sys.stderr,
+                    )
+                    continue
+                w.writerow(
+                    {
+                        "time": time,
+                        "object_type": "device",
+                        "object_id": oid,
+                        "name": device["display_name"],
+                        "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                        "macaddr": device["macaddr"],
+                        "indicator": host,
+                        "count": count,
+                    }
                 )
-                continue
-            w.writerow(
-                {
-                    "time": time,
-                    "object_type": "device",
-                    "object_id": oid,
-                    "name": device["display_name"],
-                    "ipaddr": device["ipaddr4"] or device["ipaddr6"],
-                    "macaddr": device["macaddr"],
-                    "indicator": host,
-                    "count": count,
-                    "uri": get_device_host_uri(args, oid, time, host),
-                }
-            )
-
     if found:
         print(
             "Found Sunburst host indicators in device metrics"
@@ -341,11 +372,10 @@ def show_device_host_metrics(args, w, oids):
 def show_records_host_link(args):
     print("Link to records with possible Sunburst activity:")
     print("------------------------------------------------")
-    # Positive times in the UI refer to the past
-    from_time = str(args.from_time).strip("-")
-    until_time = str(args.until_time).strip("-")
+    from_time = args.from_time // 1000
+    until_time = args.until_time // 1000
     print(
-        f"https://{args.target}/extrahop/#/Records/create?from={from_time}&interval_type=mSEC&"
+        f"https://{args.target}/extrahop/#/Records/create?from={from_time}&interval_type=DT&"
         "r.filter=W3sib3BlcmF0b3IiOiJvciIsInJ1bGVzIjpbeyJmaWVsZCI6InFuYW1lOnN0cmluZyIsIm9wZXJh"
         "dG9yIjoifiIsIm9wZXJhbmQiOiJhdnN2bWNsb3VkLmNvbSJ9LHsiZmllbGQiOiJxbmFtZTpzdHJpbmciLCJvc"
         "GVyYW5kIjoiZnJlZXNjYW5vbmxpbmUuY29tIiwib3BlcmF0b3IiOiJ-In0seyJmaWVsZCI6InFuYW1lOnN0cm"
@@ -388,7 +418,8 @@ def main():
     p.add_argument(
         "-f",
         "--from-time",
-        default=-1800000,
+        default=-1 * DAY_MS * 7 * 20,
+        type=int,
         help="The beginning timestamp for the request. Time is expressed in "
         "milliseconds since the epoch. 0 indicates the time of the request. "
         "A negative value is evaluated relative to the current time. "
@@ -444,12 +475,26 @@ def main():
         help="Print a link to records in specified time interval"
         "(default %(default)s",
     )
+    p.add_argument(
+        "--query-batch-size",
+        type=int,
+        default=DAY_MS,
+        help="Query interval to use in milliseconds default: %(default)s",
+    )
     args = p.parse_args()
     if args.device_oids and args.device_cidr:
         print(
             "Must specify either device oids or CIDR, not both", file=sys.stderr
         )
         exit(1)
+
+    capture_time = get_current_capture_time(args)
+
+    # Converting relative FROM and UNTIL times to absolute time
+    if args.from_time <= 0:
+        args.from_time = capture_time + args.from_time
+    if args.until_time <= 0:
+        args.until_time = capture_time + args.until_time
 
     if args.device_cidr:
         device_oids = get_device_oids_by_cidr(args)
