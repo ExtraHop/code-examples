@@ -8,6 +8,7 @@ import argparse
 import datetime
 import csv
 import json
+import logging
 import os
 import ssl
 import sys
@@ -84,7 +85,7 @@ def get_device(args, oid):
 
 def process_application_host_stats(args, w, resp_data):
     stats = resp_data.get("stats", [])
-    print(f"Processing {len(stats)} stats")
+    logging.info(f"Processing {len(stats)} stats")
     found = False
     for stat in stats:
         if not stat["values"][0]:
@@ -113,7 +114,7 @@ def process_application_host_stats(args, w, resp_data):
 
 
 def get_all_active_devices(args):
-    print(
+    logging.info(
         "Getting all active devices between "
         f"{tstr(args.from_time)} - {tstr(args.until_time)}"
     )
@@ -140,11 +141,11 @@ def get_all_active_devices(args):
                 oids.append(oid)
                 device_cache[oid] = device
 
-            print(f"Requesting {offset}")
+            logging.info(f"Requesting {offset}")
 
             offset += len(devices)
         except urllib.error.HTTPError as e:
-            print(f"ERROR retrieving /devices {str(e)}")
+            logging.info(f"ERROR retrieving /devices {str(e)}")
             return oids
     return oids
 
@@ -271,10 +272,7 @@ def process_device_net_detail_stats(args, w, resp):
         oid = stat["oid"]
         device = get_device(args, oid)
         if not device:
-            print(
-                f"Failed to look up matching device with id {oid}",
-                file=sys.stderr,
-            )
+            logging.info(f"Failed to look up matching device with id {oid}")
             continue
         for entry in stat["values"][0]:
             found = True
@@ -307,13 +305,13 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
-        print(
+        logging.info(
             "Getting device IP metrics: "
             f"{tstr(from_time)} - {tstr(until_time)}"
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
-            print(
+            logging.info(
                 f" getting metrics for {i + 1}-{i + len(device_batch)} "
                 f"of {len(oids)} devices"
             )
@@ -338,7 +336,7 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
 
 
 def show_application_host_metrics(args, w):
-    print("Fetching application host metrics.")
+    logging.info("Fetching application host metrics.")
     found = False
     try:
         oids = [
@@ -347,7 +345,7 @@ def show_application_host_metrics(args, w):
             if application["discovery_id"] == "_default"
         ]
     except urllib.error.HTTPError:
-        print("WARNING: failed to retrieve default applications")
+        logging.info("WARNING: failed to retrieve default applications")
         return
 
     body = {
@@ -374,10 +372,7 @@ def process_device_dns_host_stats(args, w, resp):
             oid = stat["oid"]
             device = get_device(args, oid)
             if not device:
-                print(
-                    f"Failed to look up matching device with id {oid}",
-                    file=sys.stderr,
-                )
+                logging.info(f"Failed to look up matching device with id {oid}")
                 continue
             for entry in stat["values"][0]:
                 host = entry["key"]["str"]
@@ -404,7 +399,9 @@ def for_each_eda(args, w, first_metrics_resp, process_fn):
         # running on an ECA
         eda_count = first_metrics_resp.get("num_results", 0)
         for i in range(eda_count):
-            print(f"Requesting Data from EDA {i+1}/{eda_count}... Please Wait")
+            logging.info(
+                f"Requesting Data from EDA {i+1}/{eda_count}... Please Wait"
+            )
             while True:
                 resp_data = api_request(
                     args, f"/metrics/next/{xid}", method="GET"
@@ -424,13 +421,13 @@ def show_device_host_metrics(args, w, oids):
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
-        print(
+        logging.info(
             "Getting device host metrics: "
             f"{tstr(from_time)} - {tstr(until_time)}"
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
-            print(
+            logging.info(
                 f" getting metrics for {i + 1}-{i + len(device_batch)} "
                 f"of {len(oids)} devices"
             )
@@ -459,11 +456,11 @@ def show_device_host_metrics(args, w, oids):
 
 
 def show_records_host_link(args):
-    print("Link to records with possible Sunburst activity:")
-    print("------------------------------------------------")
+    logging.info("Link to records with possible Sunburst activity:")
+    logging.info("------------------------------------------------")
     from_time = args.from_time // 1000
     until_time = args.until_time // 1000
-    print(
+    logging.info(
         f"https://{args.target}/extrahop/#/Records/create?from={from_time}&interval_type=DT&"
         "r.filter=W3sib3BlcmF0b3IiOiJvciIsInJ1bGVzIjpbeyJmaWVsZCI6InFuYW1lOnN0cmluZyIsIm9wZXJh"
         "dG9yIjoifiIsIm9wZXJhbmQiOiJhdnN2bWNsb3VkLmNvbSJ9LHsiZmllbGQiOiJxbmFtZTpzdHJpbmciLCJvc"
@@ -481,6 +478,18 @@ def show_records_host_link(args):
         "r.limit=50&r.offset=0&r.sort%5B0%5D.direction=desc&r.sort%5B0%5D.field=timestamp&"
         f"r.types%5B0%5D=~dns_request&r.v=8.0&return=clear&until={until_time}"
     )
+
+
+def setup_logging(args):
+    logger = logging.getLogger("")
+    logger.setLevel(logging.INFO)
+    console_handler = logging.StreamHandler()
+    logger.addHandler(console_handler)
+    if args.log_file:
+        formatter = logging.Formatter("%(asctime)s %(message)s")
+        file_handler = logging.FileHandler(args.log_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
 
 def main():
@@ -568,7 +577,15 @@ def main():
         default=DAY_MS,
         help="Query interval to use in milliseconds default: %(default)s",
     )
+    p.add_argument(
+        "--log-file",
+        type=str,
+        help="Name of file to log messages to: %(default)s",
+    )
     args = p.parse_args()
+
+    setup_logging(args)
+
     if args.device_oids and args.device_cidr:
         print(
             "Must specify either device oids or CIDR, not both", file=sys.stderr
@@ -601,13 +618,15 @@ def main():
             print("FATAL: invalid threat list file", args.threat_list)
             exit(1)
 
+    logging.info("Starting...")
+
     if args.device_cidr:
         device_oids = get_device_oids_by_cidr(args)
     elif args.device_oids:
         device_oids = args.device_oids
     else:
         device_oids = get_all_active_devices(args)
-    print(f"Querying against {len(device_oids)} devices")
+    logging.info(f"Querying against {len(device_oids)} devices")
 
     f_found_app_host = False
     f_found_device_host = False
@@ -636,30 +655,29 @@ def main():
                 args, w, ti_ips, device_oids
             )
         else:
-            print(
-                "WARNING: found no devices on which to query metrics",
-                file=sys.stderr,
-            )
+            logging.info("WARNING: found no devices on which to query metrics")
 
     if f_found_app_host or f_found_device_host or f_found_device_ip:
-        print("------------------------------------------------")
+        logging.info("------------------------------------------------")
     if f_found_app_host:
-        print(
+        logging.info(
             "Found Sunburst host indicators in application metrics"
             f" (see {args.output})."
         )
     if f_found_device_host:
-        print(
+        logging.info(
             "Found Sunburst host indicators in device metrics"
             f" (see {args.output})."
         )
     if f_found_device_ip:
-        print(
+        logging.info(
             "Found Sunburst IP indicators in device metrics"
             f" (see {args.output})."
         )
     if args.show_records_link:
         show_records_host_link(args)
+
+    logging.info("Complete")
 
 
 if __name__ == "__main__":
