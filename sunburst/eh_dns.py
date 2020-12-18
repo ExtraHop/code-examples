@@ -197,9 +197,9 @@ def show_device_ip_metrics(args, w, oids):
         )
 
         # parse the stats
-        for time_slice in resp["stats"]:
-            oid = time_slice["oid"]
-            for entry in time_slice["values"][0]:
+        for stat in resp["stats"]:
+            oid = stat["oid"]
+            for entry in stat["values"][0]:
                 device = get_device(args, oid)
                 if not device:
                     print(
@@ -211,7 +211,7 @@ def show_device_ip_metrics(args, w, oids):
                 ipaddr = entry["key"]["addr"]
                 w.writerow(
                     {
-                        "time": time_slice["time"],
+                        "time": stat["time"],
                         "object_type": "device",
                         "object_id": oid,
                         "name": device["display_name"],
@@ -220,7 +220,7 @@ def show_device_ip_metrics(args, w, oids):
                         "indicator": ipaddr,
                         "count": entry["value"],
                         "uri": get_device_ip_uri(
-                            args, oid, time_slice["time"], ipaddr
+                            args, oid, stat["time"], ipaddr
                         ),
                     }
                 )
