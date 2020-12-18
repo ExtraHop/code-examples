@@ -5,12 +5,11 @@
 
 #!/usr/bin/env python
 import argparse
+import csv
 import json
 import ssl
 import sys
 import urllib.request
-
-from pprint import pprint as pp
 
 
 MALICIOUS_HOST_REGEX = (
@@ -68,13 +67,14 @@ def get_devices(args):
     return devices
 
 
-def show_device_ip_metrics(args, devices):
+def show_device_ip_metrics(args, w, devices):
     """
     Searches the target for suspicious activity by device ip metrics
     """
     # load in the suspect ip addresses file
     with open(args.threat_list, "r") as f:
         ti_ips = json.load(f)
+    found = False
 
     ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
     ip_regexp = ip_regexp.replace(".", "\\.")
@@ -97,28 +97,29 @@ def show_device_ip_metrics(args, devices):
         )
 
         # parse the stats
-        results = {oid: {"hits": []} for oid in device_batch}
         for time_slice in resp["stats"]:
             oid = time_slice["oid"]
             for entry in time_slice["values"][0]:
-                results[oid]["hits"].append(
+                found = True
+                w.writerow(
                     {
-                        "host": entry["key"].get("host", ""),
                         "time": time_slice["time"],
-                        "addr": entry["key"]["addr"],
+                        "object_type": "device",
+                        "object_id": oid,
+                        "indicator": entry["key"].get("host", ""),
                         "count": entry["value"],
                     }
                 )
 
-    results = {k: v for k, v in results.items() if v["hits"]}
-    if results:
-        print("Found Sunburst IP indicators in device metrics:")
-        pp(results)
-    else:
-        print("No Sunburst IP indicators found in device metrics.")
+    if found:
+        print(
+            "Found Sunburst IP indicators in device metrics"
+            f" (see {args.output})."
+        )
 
 
-def show_application_host_metrics(args):
+def show_application_host_metrics(args, w):
+    found = False
     try:
         oids = [
             application["id"]
@@ -139,35 +140,36 @@ def show_application_host_metrics(args):
         "object_ids": oids,
     }
     resp_data = api_request(args, "/metrics", body=body)
-    matches = []
     for stat in resp_data["stats"]:
         if stat["values"][0]:
+            oid = stat["oid"]
             host = stat["values"][0][0]["key"]["str"]
             count = stat["values"][0][0]["value"]
             if not count:
                 continue
-            matches.append({"host": host, "count": count})
-    if matches:
-        print("Found Sunburst host indicators in application metrics:")
-        pp(matches)
-    else:
-        print("No Sunburst host indicators found in application metrics.")
+            found = True
+            w.writerow(
+                {
+                    "time": stat["time"],
+                    "object_type": "application",
+                    "object_id": oid,
+                    "indicator": host,
+                    "count": count,
+                }
+            )
+    if found:
+        print(
+            "Found Sunburst host indicators in application metrics"
+            f" (see {args.output})."
+        )
 
 
-def show_device_host_metrics(args, devices):
+def show_device_host_metrics(args, w, devices):
     """ Initialize a device to dns request map. """
-    request_map = dict()
-    oids = []
-    for c in devices:
-        request_map[c["id"]] = {
-            "display_name": c["display_name"],
-            "ipaddr4": c["ipaddr4"],
-            "macaddr": c["macaddr"],
-            "matches": [],
-        }
-        oids.append(c["id"])
+    found = False
+    oids = [device["id"] for device in devices]
 
-    """ Get metrics for each dns client """
+    # Get metrics for each device
     resp = api_request(
         args,
         "/metrics",
@@ -184,24 +186,29 @@ def show_device_host_metrics(args, devices):
         },
     )
 
-    """ Parse the stats and update the device to request map """
+    # Process matches
     for stat in resp["stats"]:
         if stat["values"][0]:
+            found = True
             host = stat["values"][0][0]["key"]["str"]
             count = stat["values"][0][0]["value"]
             time = stat["time"]
-            request_map[stat["oid"]]["matches"].append(
-                {"time": time, "host": host, "count": count}
+            oid = stat["oid"]
+            w.writerow(
+                {
+                    "time": time,
+                    "object_type": "device",
+                    "object_id": oid,
+                    "indicator": host,
+                    "count": count,
+                }
             )
 
-    # Only show positive matches
-    request_map = {k: v for k, v in request_map.items() if v["matches"]}
-    """ print the request map """
-    if request_map:
-        print("Found Sunburst host indicators in device metrics:")
-        pp(request_map)
-    else:
-        print("No Sunburst host indicators found in device metrics.")
+    if found:
+        print(
+            "Found Sunburst host indicators in device metrics"
+            f" (see {args.output})."
+        )
 
 
 def show_records_host_link(args):
@@ -298,24 +305,43 @@ def main():
         help="The list of numeric values that represent unique identifiers "
         "for devices default: %(default)s",
     )
+    p.add_argument(
+        "--output",
+        default="output.csv",
+        type=str,
+        help="File to write matches (CSV), default: %(default)s",
+    )
     args = p.parse_args()
     if args.device_oids and args.device_cidr:
         print(
             "Must specify either device oids or CIDR, not both", file=sys.stderr
         )
         exit(1)
-    if args.device_oids or args.device_cidr:
-        devices = get_devices(args)
-        if devices:
-            show_device_host_metrics(args, devices)
-            show_device_ip_metrics(args, devices)
-        else:
-            print(
-                "WARNING: found no devices with specified criteria",
-                file=sys.stderr,
-            )
-    show_application_host_metrics(args)
-    show_records_host_link(args)
+
+    with open(args.output, "w") as csvfile:
+        w = csv.DictWriter(
+            csvfile,
+            fieldnames=[
+                "time",
+                "object_type",
+                "object_id",
+                "indicator",
+                "count",
+            ],
+        )
+        w.writeheader()
+        if args.device_oids or args.device_cidr:
+            devices = get_devices(args)
+            if devices:
+                show_device_host_metrics(args, w, devices)
+                show_device_ip_metrics(args, w, devices)
+            else:
+                print(
+                    "WARNING: found no devices with specified criteria",
+                    file=sys.stderr,
+                )
+        show_application_host_metrics(args, w)
+        show_records_host_link(args)
 
 
 if __name__ == "__main__":
