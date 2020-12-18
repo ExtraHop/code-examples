@@ -594,7 +594,7 @@ def main():
         device_oids = get_all_active_devices(args)
     print(f"Querying against {len(device_oids)} devices")
 
-    with open(args.output, "w") as csvfile:
+    with open(args.output, "w", encoding="utf-8", buffering=1) as csvfile:
         w = csv.DictWriter(
             csvfile,
             fieldnames=[
