@@ -27,6 +27,10 @@ if hasattr(ssl, "_create_unverified_context"):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 
+def tstr(t):
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t // 1000))
+
+
 def get_time_ms(dt_str):
     dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d")
     return int(time.mktime(dt.timetuple()) * 1000)
@@ -95,7 +99,7 @@ def process_application_host_stats(args, w, resp_data):
             found = True
             w.writerow(
                 {
-                    "time": stat["time"],
+                    "time": tstr(stat["time"]),
                     "object_type": "application",
                     "object_id": oid,
                     "name": "All Activity",
@@ -278,7 +282,7 @@ def process_device_net_detail_stats(args, w, resp):
             ipaddr = entry["key"]["addr"]
             w.writerow(
                 {
-                    "time": stat["time"],
+                    "time": tstr(stat["time"]),
                     "object_type": "device",
                     "object_id": oid,
                     "name": device["display_name"],
@@ -385,7 +389,7 @@ def process_device_dns_host_stats(args, w, resp):
                 count = entry["value"]
                 w.writerow(
                     {
-                        "time": time,
+                        "time": tstr(time),
                         "object_type": "device",
                         "object_id": oid,
                         "name": device["display_name"],
