@@ -97,7 +97,7 @@ def show_device_ip_metrics(args, devices):
         )
 
         # parse the stats
-        results = {oid: {"hits": []} for oid in oids}
+        results = {oid: {"hits": []} for oid in device_batch}
         for time_slice in resp["stats"]:
             oid = time_slice["oid"]
             for entry in time_slice["values"][0]:
