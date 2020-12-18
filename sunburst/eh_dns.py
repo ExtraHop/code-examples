@@ -39,7 +39,23 @@ def api_request(args, path, body=None):
     return rsp
 
 
+device_cache = {}
+
+
+def get_device(args, oid):
+    global device_cache
+    if oid in device_cache:
+        return device_cache[oid]
+    try:
+        device = api_request(args, f"/devices/{oid}")
+        device_cache[oid] = device
+        return device
+    except urllib.error.HTTPError:
+        return None
+
+
 def get_device_oids_by_cidr(args):
+    global device_cache
     try:
         devices = api_request(
             args,
@@ -52,7 +68,12 @@ def get_device_oids_by_cidr(args):
                 }
             },
         )
-        return [device["id"] for device in devices]
+        oids = []
+        for device in devices:
+            oid = device["id"]
+            oids.append(oid)
+            device_cache[oid] = device
+        return oids
     except urllib.error.HTTPError:
         return []
 
@@ -89,12 +110,22 @@ def show_device_ip_metrics(args, w, oids):
         for time_slice in resp["stats"]:
             oid = time_slice["oid"]
             for entry in time_slice["values"][0]:
+                device = get_device(args, oid)
+                if not device:
+                    print(
+                        f"Failed to look up matching device with id {oid}",
+                        file=sys.stderr,
+                    )
+                    continue
                 found = True
                 w.writerow(
                     {
                         "time": time_slice["time"],
                         "object_type": "device",
                         "object_id": oid,
+                        "name": device["display_name"],
+                        "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                        "macaddr": device["macaddr"],
                         "indicator": entry["key"].get("host", ""),
                         "count": entry["value"],
                     }
@@ -142,6 +173,7 @@ def show_application_host_metrics(args, w):
                     "time": stat["time"],
                     "object_type": "application",
                     "object_id": oid,
+                    "name": "All Activity",
                     "indicator": host,
                     "count": count,
                 }
@@ -182,11 +214,21 @@ def show_device_host_metrics(args, w, oids):
             count = stat["values"][0][0]["value"]
             time = stat["time"]
             oid = stat["oid"]
+            device = get_device(args, oid)
+            if not device:
+                print(
+                    f"Failed to look up matching device with id {oid}",
+                    file=sys.stderr,
+                )
+                continue
             w.writerow(
                 {
                     "time": time,
                     "object_type": "device",
                     "object_id": oid,
+                    "name": device["display_name"],
+                    "ipaddr": device["ipaddr4"] or device["ipaddr6"],
+                    "macaddr": device["macaddr"],
                     "indicator": host,
                     "count": count,
                 }
@@ -324,6 +366,9 @@ def main():
                 "time",
                 "object_type",
                 "object_id",
+                "name",
+                "ipaddr",
+                "macaddr",
                 "indicator",
                 "count",
             ],
