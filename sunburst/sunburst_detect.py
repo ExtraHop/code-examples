@@ -117,7 +117,7 @@ def process_application_host_stats(args, w, resp_data):
 def get_all_active_devices(args):
     print(
         "Getting all active devices between "
-        f"{args.from_time} - {args.until_time}"
+        f"{tstr(args.from_time)} - {tstr(args.until_time)}"
     )
     global device_cache
     LIMIT = 1000
@@ -311,7 +311,7 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
     ):
         print(
             "Getting device IP metrics: "
-            f"{tstr(from_time)} - {tstr(from_time)}"
+            f"{tstr(from_time)} - {tstr(until_time)}"
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
@@ -428,7 +428,7 @@ def show_device_host_metrics(args, w, oids):
     ):
         print(
             "Getting device host metrics: "
-            f"{tstr(from_time)} - {tstr(from_time)}"
+            f"{tstr(from_time)} - {tstr(until_time)}"
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
