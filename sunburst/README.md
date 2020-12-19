@@ -22,23 +22,32 @@ By default the script checks from the current date to 2020-07-31. You can specif
 The command displays progress output similar to the following text:
 
 ```
-Getting all active devices between 1596178800000 - 1608325832555
+Getting all active devices between 2020-07-31 00:00:00 - 2020-12-18 16:46:32
 Requesting 0
 Requesting 1000
 ...
-Querying against 6387 devices
+Querying against 6402 devices
 Fetching application host metrics.
-Processing 3052 stats
-Devices batch 0 of 6387
-Devices batch 200 of 6387
+Processing 3055 stats
+Getting device host metrics: 2020-12-17 16:46:32 - 2020-12-18 16:46:32
+ getting metrics for 1-200 of 6402 devices
+ getting metrics for 201-400 of 6402 devices
 ...
 ```
 
-After the command completes, check the output CSV file (output.csv) for any DNS or IP address matches similar to the following:
+First the list of all devices are fetched in blocks of 1000. Then devices are processed in blocks of 200, a day at a time.
+
+After the command completes, if there are any DNS or IP address matches, the final output will be similar to the following:
+
+```
+Found Sunburst host indicators in application metrics (see output.csv).
+```
+
+Check the output CSV file (output.csv) for details of any DNS or IP address matches similar to the following:
 
 ```
 time,object_type,object_id,name,ipaddr,macaddr,indicator,count,uri
-1608256800000,device,21167,VPN Client 10.8.16.51,10.8.16.51,,blah.avsvmcloud.com,2,
+2020-12-17 17:45:00,device,1510,exampledomain.com,10.4.1.6,00:12:34:56:78:90,www.avsvmcloud.com,2,
 ```
 
 For more information, see [How to Hunt for, Detect, and Respond to SUNBURST](https://www.extrahop.com/company/blog/2020/detect-and-respond-to-sunburst/) and
