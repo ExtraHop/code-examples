@@ -300,16 +300,13 @@ def show_device_metrics(args, w, category, specs, oids, process_fn):
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
-        logging.info(
-            "Getting device %s metrics: %s - %s",
-            category,
-            tstr(from_time),
-            tstr(until_time),
-        )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
             logging.info(
-                " getting metrics for %d-%d of %d devices",
+                "Getting %s metrics from %s - %s for %d-%d of %d devices",
+                category,
+                tstr(from_time),
+                tstr(until_time),
                 i + 1,
                 i + len(device_batch),
                 len(oids),
