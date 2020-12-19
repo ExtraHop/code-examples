@@ -365,7 +365,7 @@ def show_application_host_metrics(args, w):
         "from": args.from_time,
         "until": args.until_time,
         "metric_category": "dns_host_query_detail",
-        "metric_specs": [{"name": "req", "key1": f"{MALICIOUS_HOST_REGEX}"}],
+        "metric_specs": [{"name": "req", "key1": f"{args.host_regex}"}],
         "object_type": "application",
         "object_ids": oids,
     }
@@ -429,7 +429,7 @@ def for_each_eda(args, w, first_metrics_resp, process_fn):
 
 
 def show_device_host_metrics(args, w, oids):
-    metric_specs = [{"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}]
+    metric_specs = [{"name": "host_query", "key1": f"{args.host_regex}"}]
     return show_device_metrics(
         args, w, "dns_client", metric_specs, oids, process_device_dns_host_stats
     )
@@ -486,6 +486,12 @@ def main():
         "--threat-list",
         default="threats.json",
         help="A JSON file with a list of IOC IPs",
+    )
+    p.add_argument(
+        "-H",
+        "--host-regex",
+        default=MALICIOUS_HOST_REGEX,
+        help="Regular expression for malicious hosts",
     )
     p.add_argument(
         "-a",
