@@ -38,15 +38,13 @@ def get_time_ms(dt_str):
 
 
 def get_query_intervals(from_time, until_time, interval_size):
-    next_until = until_time
-    next_from = until_time - interval_size + 1
-    remaining = (until_time - from_time) - interval_size
-
-    while remaining >= 0:
-        yield (next_from, next_until)
-        next_until = next_until - interval_size
-        next_from = max(next_from - interval_size, from_time)
-        remaining -= interval_size
+    next_until = from_time + interval_size - 1
+    while from_time < until_time:
+        yield (from_time, next_until)
+        from_time += interval_size
+        next_until = from_time + interval_size - 1
+        if next_until > until_time:
+            next_until = until_time
 
 
 def api_request(args, path, body=None, method=None):
