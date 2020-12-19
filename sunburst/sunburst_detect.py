@@ -115,8 +115,9 @@ def process_application_host_stats(args, w, resp_data):
 
 def get_all_active_devices(args):
     logging.info(
-        "Getting all active devices between "
-        f"{tstr(args.from_time)} - {tstr(args.until_time)}"
+        "Getting all active devices between %s - %s",
+        tstr(args.from_time),
+        tstr(args.until_time),
     )
     global device_cache
     LIMIT = 1000
@@ -306,14 +307,17 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
         args.from_time, args.until_time, args.query_batch_size
     ):
         logging.info(
-            "Getting device IP metrics: "
-            f"{tstr(from_time)} - {tstr(until_time)}"
+            "Getting device IP metrics: %s - %s",
+            tstr(from_time),
+            tstr(until_time),
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
             logging.info(
-                f" getting metrics for {i + 1}-{i + len(device_batch)} "
-                f"of {len(oids)} devices"
+                " getting metrics for %d-%d of %d devices",
+                i + 1,
+                i + len(device_batch),
+                len(oids),
             )
             resp = api_request(
                 args,
@@ -422,14 +426,17 @@ def show_device_host_metrics(args, w, oids):
         args.from_time, args.until_time, args.query_batch_size
     ):
         logging.info(
-            "Getting device host metrics: "
-            f"{tstr(from_time)} - {tstr(until_time)}"
+            "Getting device host metrics: %s - %s",
+            tstr(from_time),
+            tstr(until_time),
         )
         for i in range(0, len(oids), args.oid_batch_size):
             device_batch = oids[i : i + args.oid_batch_size]
             logging.info(
-                f" getting metrics for {i + 1}-{i + len(device_batch)} "
-                f"of {len(oids)} devices"
+                " getting metrics for %d-%d of %d devices",
+                i + 1,
+                i + len(device_batch),
+                len(oids),
             )
             # Get metrics for each device
             resp = api_request(
