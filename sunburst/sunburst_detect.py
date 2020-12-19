@@ -294,20 +294,15 @@ def process_device_net_detail_stats(args, w, resp):
     return found
 
 
-def show_device_ip_metrics(args, w, ti_ips, oids):
-    """
-    Searches the target for suspicious activity by device ip metrics
-    """
+def show_device_metrics(args, w, category, specs, oids, process_fn):
     found = False
-
-    ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
-    ip_regexp = ip_regexp.replace(".", "\\.")
 
     for from_time, until_time in get_query_intervals(
         args.from_time, args.until_time, args.query_batch_size
     ):
         logging.info(
-            "Getting device IP metrics: %s - %s",
+            "Getting device %s metrics: %s - %s",
+            category,
             tstr(from_time),
             tstr(until_time),
         )
@@ -326,17 +321,33 @@ def show_device_ip_metrics(args, w, ti_ips, oids):
                     "cycle": args.cycle,
                     "from": from_time,
                     "until": until_time,
-                    "metric_category": "net_detail",
+                    "metric_category": category,
                     "object_type": "device",
-                    "metric_specs": [{"name": "bytes_out", "key1": ip_regexp}],
+                    "metric_specs": specs,
                     "object_ids": device_batch,
                 },
             )
-            found |= for_each_eda(
-                args, w, resp, process_device_net_detail_stats
-            )
+            found |= for_each_eda(args, w, resp, process_fn)
 
     return found
+
+
+def show_device_ip_metrics(args, w, ti_ips, oids):
+    """
+    Searches the target for suspicious activity by device ip metrics
+    """
+    ip_regexp = "/^(" + "|".join(ti_ips) + ")$/"
+    ip_regexp = ip_regexp.replace(".", "\\.")
+    metric_specs = [{"name": "bytes_out", "key1": ip_regexp}]
+
+    return show_device_metrics(
+        args,
+        w,
+        "net_detail",
+        metric_specs,
+        oids,
+        process_device_net_detail_stats,
+    )
 
 
 def show_application_host_metrics(args, w):
@@ -421,45 +432,10 @@ def for_each_eda(args, w, first_metrics_resp, process_fn):
 
 
 def show_device_host_metrics(args, w, oids):
-    found = False
-    for from_time, until_time in get_query_intervals(
-        args.from_time, args.until_time, args.query_batch_size
-    ):
-        logging.info(
-            "Getting device host metrics: %s - %s",
-            tstr(from_time),
-            tstr(until_time),
-        )
-        for i in range(0, len(oids), args.oid_batch_size):
-            device_batch = oids[i : i + args.oid_batch_size]
-            logging.info(
-                " getting metrics for %d-%d of %d devices",
-                i + 1,
-                i + len(device_batch),
-                len(oids),
-            )
-            # Get metrics for each device
-            resp = api_request(
-                args,
-                "/metrics",
-                body={
-                    "cycle": args.cycle,
-                    "from": from_time,
-                    "until": until_time,
-                    "metric_category": "dns_client",
-                    "metric_specs": [
-                        {
-                            "name": "host_query",
-                            "key1": f"{MALICIOUS_HOST_REGEX}",
-                        }
-                    ],
-                    "object_type": "device",
-                    "object_ids": device_batch,
-                },
-            )
-            found |= for_each_eda(args, w, resp, process_device_dns_host_stats)
-
-    return found
+    metric_specs = [{"name": "host_query", "key1": f"{MALICIOUS_HOST_REGEX}"}]
+    return show_device_metrics(
+        args, w, "dns_client", metric_specs, oids, process_device_dns_host_stats
+    )
 
 
 def show_records_host_link(args):
