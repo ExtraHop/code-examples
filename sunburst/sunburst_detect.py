@@ -10,6 +10,7 @@ import csv
 import json
 import logging
 import os
+import socket
 import ssl
 import sys
 import urllib.request
@@ -62,7 +63,7 @@ def _api_request(args, path, body, method):
     )
     if method:
         req.method = method
-    with urllib.request.urlopen(req) as rsp:
+    with urllib.request.urlopen(req, timeout=60) as rsp:
         rsp = json.loads(rsp.read().decode("utf-8"))
     return rsp
 
@@ -73,7 +74,7 @@ def api_request(args, path, body=None, method=None):
     while True:
         try:
             return _api_request(args, path, body, method)
-        except urllib.error.HTTPError as e:
+        except (socket.timeout, urllib.error.HTTPError) as e:
             attempts -= 1
             if attempts == 0:
                 raise
