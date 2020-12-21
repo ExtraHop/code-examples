@@ -48,7 +48,7 @@ def get_query_intervals(from_time, until_time, interval_size):
             next_until = until_time
 
 
-def api_request(args, path, body=None, method=None):
+def _api_request(args, path, body, method):
     if body:
         body = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
@@ -65,6 +65,21 @@ def api_request(args, path, body=None, method=None):
     with urllib.request.urlopen(req) as rsp:
         rsp = json.loads(rsp.read().decode("utf-8"))
     return rsp
+
+
+def api_request(args, path, body=None, method=None):
+    attempts = 5
+    timeout = 1
+    while True:
+        try:
+            return _api_request(args, path, body, method)
+        except urllib.error.HTTPError as e:
+            attempts -= 1
+            if attempts == 0:
+                raise
+            timeout *= 2
+            logging.info("%s, retrying in %d seconds", str(e), timeout)
+            time.sleep(timeout)
 
 
 device_cache = {}
