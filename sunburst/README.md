@@ -6,10 +6,18 @@ This Python script searches the ExtraHop system for the following data.
 * All DNS queries that reference the Command and Control domains associated with the SUNBURST backdoor attack, such as avsvmcloud[.]com.
 * Every time that a device on your network contacted an IP address associated with the SUNBURST backdoor attack.
 
-After you have downloaded the script and threats.json, run the following command from the directory where you saved the script.
+At least Python version 3.6 is required.
+
+After you have downloaded the script and threats.json, on Windows, run the following command from the directory where you saved the script.
 
 ```
-python3 ~/sunburst_detect.py -t HOST -a API_KEY
+py .\sunburst_detect.py -t HOST -a API_KEY
+```
+
+On Linux and Mac OS X, run the following command from the directory where you saved the script.
+
+```
+python3 ./sunburst_detect.py -t HOST -a API_KEY
 ```
 
 *Note*: In the above command, replace the following configuration variables with information from your environment:
