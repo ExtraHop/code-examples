@@ -555,7 +555,7 @@ def main():
         "--show-records-link",
         action="store_true",
         help="Print a link to records in specified time interval"
-        "(default %(default)s",
+        " (default %(default)s)",
     )
     p.add_argument(
         "--query-batch-size",
