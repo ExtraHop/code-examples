@@ -560,7 +560,7 @@ def main():
     p.add_argument(
         "--query-batch-size",
         type=int,
-        default=DAY_MS,
+        default=2 * DAY_MS,
         help="Query interval to use in milliseconds default: %(default)s",
     )
     p.add_argument(
