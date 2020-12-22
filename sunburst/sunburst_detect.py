@@ -666,16 +666,23 @@ def main():
             "Found Sunburst host indicators in application metrics"
             f" (see {args.output})."
         )
+    else:
+        logging.info("No Sunburst host indicators found in application metrics")
     if f_found_device_host:
         logging.info(
             "Found Sunburst host indicators in device metrics"
             f" (see {args.output})."
         )
+    else:
+        logging.info("No Sunburst host indicators found in device metrics")
     if f_found_device_ip:
         logging.info(
             "Found Sunburst IP indicators in device metrics"
             f" (see {args.output})."
         )
+    else:
+        logging.info("No Sunburst IP indicators foundin device metrics")
+
     if args.show_records_link:
         show_records_host_link(args)
 
