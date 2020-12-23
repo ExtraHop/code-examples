@@ -63,7 +63,7 @@ def _api_request(args, path, body, method):
     )
     if method:
         req.method = method
-    with urllib.request.urlopen(req, timeout=60) as rsp:
+    with urllib.request.urlopen(req, timeout=args.request_timeout) as rsp:
         rsp = json.loads(rsp.read().decode("utf-8"))
     return rsp
 
@@ -546,6 +546,12 @@ def main():
         default=200,
         help="Dictates the OID batch size to use for device "
         "queries default: %(default)s",
+    )
+    p.add_argument(
+        "--request-timeout",
+        type=int,
+        default=60,
+        help="API request timeout in seconds default: %(default)s",
     )
     p.add_argument(
         "--device-cidr",
