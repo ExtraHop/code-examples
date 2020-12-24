@@ -71,8 +71,16 @@ def _api_request(args, path, body, method):
     if method:
         req.method = method
     with urllib.request.urlopen(req, timeout=args.request_timeout) as rsp:
-        rsp = json.loads(rsp.read().decode("utf-8"))
-    return rsp
+        rsp_data = rsp.read()
+        try:
+            decoded_rsp_data = rsp_data.decode("utf-8")
+        except Exception as e:
+            logging.info("Error decoding API response: %s", e)
+            logging.info("Bad response in %s", args.bad_response_file)
+            with open(args.bad_response_file, "wb") as f:
+                f.write(rsp_data)
+            raise
+        return json.loads(decoded_rsp_data)
 
 
 def api_request(args, path, body=None, method=None):
@@ -596,6 +604,12 @@ def main():
         "--log-file",
         type=str,
         help="Name of file to log messages to: %(default)s",
+    )
+    p.add_argument(
+        "--bad-response-file",
+        type=str,
+        default="bad-response.data",
+        help="Name of file to write bad response to: %(default)s",
     )
     args = p.parse_args()
 
