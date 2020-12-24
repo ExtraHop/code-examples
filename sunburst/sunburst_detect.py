@@ -34,8 +34,15 @@ def tstr(t):
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t // 1000))
 
 
-def get_time_ms(dt_str):
-    dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d")
+def get_time_ms(tval):
+    try:
+        return int(tval)
+    except ValueError:
+        pass
+    fmt = "%Y-%m-%d"
+    if " " in tval:
+        fmt += " %H:%M:%S"
+    dt = datetime.datetime.strptime(tval, fmt)
     return int(time.mktime(dt.timetuple()) * 1000)
 
 
@@ -520,8 +527,8 @@ def main():
         "--from-time",
         default="2020-07-31",
         type=str,
-        help="The beginning date for the request. Expressed as YYYY-MM-DD "
-        "default: %(default)s",
+        help="The beginning date for the request. Expressed as "
+        "YYYY-MM-DD[ HH:DD:MM] or time in milliseconds default: %(default)s",
     )
     p.add_argument(
         "-u",
