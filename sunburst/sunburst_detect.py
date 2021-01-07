@@ -624,13 +624,13 @@ def main():
     # Convert string times to milliseconds since epoch
     try:
         args.from_time = get_time_ms(args.from_time)
-    except:
+    except Exception:
         print("FATAL: invalid from time", args.from_time, file=sys.stderr)
         exit(1)
     if args.until_time:
         try:
             args.until_time = get_time_ms(args.until_time)
-        except:
+        except Exception:
             print("FATAL: invalid until time", args.until_time, file=sys.stderr)
             exit(1)
     else:
@@ -643,7 +643,7 @@ def main():
     with open(args.threat_list, "r") as f:
         try:
             ti_ips = json.load(f)
-        except:
+        except Exception:
             print("FATAL: invalid threat list file", args.threat_list)
             exit(1)
 
@@ -677,14 +677,26 @@ def main():
             ],
         )
         w.writeheader()
-        f_found_app_host = show_application_host_metrics(args, w)
-        if device_oids:
-            f_found_device_host = show_device_host_metrics(args, w, device_oids)
-            f_found_device_ip = show_device_ip_metrics(
-                args, w, ti_ips, device_oids
+        try:
+            f_found_app_host = show_application_host_metrics(args, w)
+            if device_oids:
+                f_found_device_host = show_device_host_metrics(
+                    args, w, device_oids
+                )
+                f_found_device_ip = show_device_ip_metrics(
+                    args, w, ti_ips, device_oids
+                )
+            else:
+                logging.info(
+                    "WARNING: found no devices on which to query metrics"
+                )
+        except Exception as e:
+            logging.exception(e)
+            logging.info(
+                f"Detection execution ended abruptly: see {args.output} for "
+                "matches up to this point."
             )
-        else:
-            logging.info("WARNING: found no devices on which to query metrics")
+            exit(1)
 
     if f_found_app_host or f_found_device_host or f_found_device_ip:
         logging.info("------------------------------------------------")
