@@ -565,7 +565,7 @@ def main():
     p.add_argument(
         "--request-timeout",
         type=int,
-        default=60,
+        default=180,
         help="API request timeout in seconds default: %(default)s",
     )
     p.add_argument(
