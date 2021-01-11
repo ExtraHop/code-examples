@@ -384,8 +384,9 @@ def show_application_host_metrics(args, w):
     try:
         oids = [
             application["id"]
-            for application in api_request(args, "/applications")
-            if application["discovery_id"] == "_default"
+            for application in api_request(
+                args, "/applications?search_type=discovery_id&value=_default"
+            )
         ]
     except urllib.error.HTTPError:
         logging.info("WARNING: failed to retrieve default applications")
