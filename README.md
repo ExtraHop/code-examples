@@ -10,7 +10,7 @@ This repository contains the following example scripts.
 
 This Bash script generates a temporary API access token with the cURL command and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
 
-For more information, see [Authenticate with the Reveal(x) 360 REST API](https://docs.dev.extrahop.com/current/rest-rx360-auth/)
+For more information, see [Generate a REST API token](https://docs.extrahop.com/current/rx360-rest-api/#generate-a-rest-api-token)
 
 ### create-backup
 
@@ -34,7 +34,7 @@ For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lam
 
 This Python script generates a temporary API access token and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
 
-For more information, see [Authenticate with the Reveal(x) 360 REST API](https://docs.dev.extrahop.com/current/rest-rx360-auth/)
+For more information, see [Generate a REST API token](https://docs.extrahop.com/current/rx360-rest-api/#generate-a-rest-api-token)
 
 ### self-managed-sensor-rx360-connect
 
