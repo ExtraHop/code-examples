@@ -28,7 +28,7 @@ For more information, see [Create a device group through the REST API](https://d
 
 This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
 
-For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lambda](https://docs.dev.extrahop.com/current/rx360-lambda-traffic-mirror/)
+For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lambda](https://docs.extrahop.com/current/lambda-traffic-mirror/)
 
 ### py-rx360-auth
 
