@@ -76,7 +76,7 @@ For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lam
 
 The Python scripts in this directory migrate user customizations from remote users to SAML through the REST API.
 
-For more information, see [Migrate to SAML from LDAP through the REST API](https://docs.extrahop.com/current/migrate-saml-rest/#delete-remote-user-accounts).
+For more information, see [Migrate to SAML from LDAP through the REST API](https://docs.extrahop.com/current/migrate-saml-rest/).
 
 ### py-rx360-auth
 
