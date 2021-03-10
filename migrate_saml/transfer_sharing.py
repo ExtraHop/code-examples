@@ -8,11 +8,16 @@
 import json
 import requests
 import sys
+import os
 
-# The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
-# The API key generated from the ExtraHop system.
-API_KEY = "ac09e68cf6b5499697fe93d3930e41ed"
+# The IP address or hostname of the ExtraHop system. Set via OS env variable.
+# If desired, replace with hardcoded value, e.g. HOST = "https://extrahop.example.com"
+HOST = os.environ['EXTRAHOP_HOST']
+
+# The API key generated from the ExtraHop system. Set via OS env variable.
+# If desired, replace with hardcoded value, e.g. API_KEY = "123456789abcdefghijklmnop"
+API_KEY = os.environ['EXTRAHOP_API_KEY']
+
 # The type of customization to transfer.
 #     The following values are valid: 'dashboards', 'activitymaps', 'reports'
 OBJECT_TYPE = "dashboards"

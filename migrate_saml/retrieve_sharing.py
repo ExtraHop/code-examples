@@ -7,14 +7,20 @@
 
 import json
 import requests
+import os
 
-# The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
-# The API key generated from the ExtraHop system.
-API_KEY = "123456789abcdefghijklmnop"
+# The IP address or hostname of the ExtraHop system. Set via OS env variable.
+# If desired, replace with hardcoded value, e.g. HOST = "https://extrahop.example.com"
+HOST = os.environ['EXTRAHOP_HOST']
+
+# The API key generated from the ExtraHop system. Set via OS env variable.
+# If desired, replace with hardcoded value, e.g. API_KEY = "123456789abcdefghijklmnop"
+API_KEY = os.environ['EXTRAHOP_API_KEY']
+
 # The type of customization metadata to retrieve.
 #     The following values are valid: 'dashboards', 'activitymaps'
 OBJECT_TYPE = "dashboards"
+
 # The name of the JSON file to save customization metadata in.
 #     The following values are valid: 'dashboards', 'activitymaps'
 OUTPUT_FILE = "dashboards.json"
