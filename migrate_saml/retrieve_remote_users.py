@@ -8,11 +8,13 @@
 import json
 import requests
 import sys
+import os
 
-# The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
-# The API key generated from the ExtraHop system.
-API_KEY = "123456789abcdefghijklmnop"
+# Retrieves the IP address or hostname of the ExtraHop system from an environment variable.
+HOST = os.environ['EXTRAHOP_HOST']
+
+# Retrieves the API key from an environment variable.
+API_KEY = os.environ['EXTRAHOP_API_KEY']
 
 OUTPUT_FILE = "user_map.json"
 headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
