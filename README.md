@@ -66,6 +66,12 @@ This Python script extracts the total count of HTTP responses a server with an I
 
 For more information, see [Extract metrics through the REST API](https://docs.extrahop.com/current/rest-extract-metrics/).
 
+### rollback-firmware
+
+This Python script rolls back firmware on multiple ExtraHop systems by reading URLs and API keys from a CSV file. Rolling back the firmware on an appliance resets the datastore and removes all metrics. 
+
+For more information, see [Roll back firmware through the REST API](https://docs.extrahop.com/current/rest-rollback/)
+
 ### lambda-traffic-mirror
 
 This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
