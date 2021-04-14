@@ -66,17 +66,17 @@ This Python script extracts the total count of HTTP responses a server with an I
 
 For more information, see [Extract metrics through the REST API](https://docs.extrahop.com/current/rest-extract-metrics/).
 
-### rollback-firmware
-
-This Python script rolls back firmware on multiple ExtraHop systems by reading URLs and API keys from a CSV file. Rolling back the firmware on an appliance resets the datastore and removes all metrics. 
-
-For more information, see [Roll back firmware through the REST API](https://docs.extrahop.com/current/rest-rollback/)
-
 ### lambda-traffic-mirror
 
 This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
 
 For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lambda](https://docs.extrahop.com/current/lambda-traffic-mirror/).
+
+### migrate-detection-hiding
+
+This Python script migrates detection hiding rules from an ExtraHop sensor to Reveal(x) 360.
+
+For more information, see [Migrate detection hiding rules](rest-migrate-detection-rules).
 
 ### migrate-saml
 
@@ -101,6 +101,12 @@ For more information, see [Query for records through the REST API](https://docs.
 This Python script retrieves records from a third-party recordstore.
 
 For more information, see [Query for records through the REST API](https://docs.extrahop.com/current/rest-query-records/).
+
+### rollback-firmware
+
+This Python script rolls back firmware on multiple ExtraHop systems by reading URLs and API keys from a CSV file. Rolling back the firmware on an appliance resets the datastore and removes all metrics.
+
+For more information, see [Roll back firmware through the REST API](https://docs.extrahop.com/current/rest-rollback/)
 
 ### search-device
 
