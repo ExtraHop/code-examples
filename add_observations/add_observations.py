@@ -9,9 +9,10 @@ import json
 import csv
 import time
 import requests
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
+HOST = "extrahop.example.com"
 # The API key.
 API_KEY = "123456789abcdefghijklmnop"
 # The name of the CSV file.
@@ -76,7 +77,7 @@ def makeObservations(observations):
             observations (list): A list of observation dictionaries
 
     """
-    url = HOST + "/api/v1/observations/associatedipaddrs"
+    url = urlunparse(("https", HOST, "/api/v1/observations/associatedipaddrs", "", "", ""))
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",

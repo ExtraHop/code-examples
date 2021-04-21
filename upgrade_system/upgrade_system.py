@@ -8,6 +8,7 @@
 import os
 import requests
 import csv
+from urllib.parse import urlunparse
 
 SYSTEM_LIST = "systems.csv"
 
@@ -36,7 +37,7 @@ def uploadFirmware(host, api_key, firmware):
         "Authorization": "ExtraHop apikey=%s" % api_key,
         "Content-Type": "application/vnd.extrahop.firmware",
     }
-    url = host + "api/v1/extrahop/firmware"
+    url = urlunparse(("https", host, "/api/v1/extrahop/firmware", "", "", ""))
     file_path = os.path.join(firmware)
     data = open(file_path, "rb")
     r = requests.post(url, data=data, headers=headers)
@@ -62,7 +63,9 @@ def upgradeFirmware(host, api_key):
             bool: Indicates whether the upgrade was successful
     """
     headers = {"Authorization": "ExtraHop apikey=%s" % api_key}
-    url = host + "api/v1/extrahop/firmware/latest/upgrade"
+    url = urlunparse(
+        ("https", host, "/api/v1/extrahop/firmware/latest/upgrade", "", "", "")
+    )
     r = requests.post(url, headers=headers)
     print(r.status_code)
     if r.status_code == 202:

@@ -8,34 +8,32 @@
 import requests
 import csv
 import json
+from urllib.parse import urlunparse
 
-SENSORS_LIST = 'sensors.csv'
+SENSORS_LIST = "sensors.csv"
 
 # Read sensor hostnames and connection tokens from CSV
 sensors = []
-with open(SENSORS_LIST, 'r') as f:
+with open(SENSORS_LIST, "r") as f:
     reader = csv.reader(f)
     for row in reader:
-        sensor = {
-            'host': row[0],
-            'api_key': row[1],
-            'token': row[2]
-        }
+        sensor = {"host": row[0], "api_key": row[1], "token": row[2]}
         sensors.append(sensor)
 
 # Function that connects a sensor to CCP
 def connectSensor(sensor):
-    url = sensor['host'] + '/api/v1/cloud/connect'
-    headers = {'Authorization': 'ExtraHop apikey=%s' % sensor['api_key']}
-    data = {
-        "cloud_token": sensor['token']
-    }
+    url = urlunparse(
+        ("https", sensor["host"], "/api/v1/cloud/connect", "", "", "")
+    )
+    headers = {"Authorization": "ExtraHop apikey=%s" % sensor["api_key"]}
+    data = {"cloud_token": sensor["token"]}
     r = requests.post(url, headers=headers, data=json.dumps(data))
     if r.status_code == 201:
-        print('Successfully paired ' + sensor['host'])
+        print("Successfully paired " + sensor["host"])
     else:
-        print('Error! Failed to pair ' + sensor['host'])
+        print("Error! Failed to pair " + sensor["host"])
         print(r.text)
+
 
 for sensor in sensors:
     connectSensor(sensor)

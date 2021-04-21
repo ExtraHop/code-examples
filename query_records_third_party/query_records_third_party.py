@@ -8,6 +8,7 @@
 import json
 import requests
 import unicodecsv as csv
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
@@ -58,7 +59,7 @@ def recordQuery(query):
         Returns:
             dict: The records that matched the query parameters
     """
-    url = HOST + "/api/v1/records/search"
+    url = urlunparse(("https", HOST, "/api/v1/records/search", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
     r = requests.post(url, headers=headers, data=json.dumps(query))
     try:

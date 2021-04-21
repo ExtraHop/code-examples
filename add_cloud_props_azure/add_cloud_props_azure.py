@@ -12,9 +12,10 @@ import os
 import json
 import sys
 import requests
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
+HOST = "extrahop.example.com"
 # The ExtraHop API key.
 APIKEY = "123456789abcdefghijklmnop"
 
@@ -44,7 +45,7 @@ def addEHids(mac_addresses, mapping):
             to_do (list): List of network interfaces that have been mapped to ExtraHop device IDs
             not_found (list): List of network interface MAC addresses that were not found on the ExtraHop system
     """
-    url = HOST + "/api/v1/devices/search"
+    url = urlunparse(("https", HOST, "/api/v1/devices/search", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % APIKEY}
     rules = []
     for macaddr in mac_addresses:
@@ -93,7 +94,9 @@ def updateMeta(device, dev_id):
         Returns:
             bool: Indicates whether the request was successful
     """
-    url = HOST + "/api/v1/devices/" + str(dev_id)
+    url = urlunparse(
+        ("https", HOST, f"/api/v1/devices/{str(dev_id)}", "", "", "")
+    )
     headers = {"Authorization": "ExtraHop apikey=%s" % APIKEY}
     r = requests.patch(url, headers=headers, data=json.dumps(device))
     if r.status_code != 204:

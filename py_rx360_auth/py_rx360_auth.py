@@ -3,11 +3,12 @@
 import requests
 import base64
 import json
+from urllib.parse import urlunparse
 
 # The hostname of the Reveal(x) 360 API. This hostname is displayed in Reveal(x)
 # 360 on the API Access page under API Endpoint. The hostname does not
 # include the /oauth/token.
-HOST = "https://example.api.com"
+HOST = "example.api.com"
 # The ID of the REST API credentials.
 ID = "abcdefg123456789"
 # The secret of the REST API credentials.
@@ -22,15 +23,13 @@ def getToken():
             str: A temporary API access token
     """
     auth = base64.b64encode(bytes(ID + ":" + SECRET, "utf-8")).decode("utf-8")
-    print(auth)
     headers = {
         "Authorization": "Basic " + auth,
         "Content-Type": "application/x-www-form-urlencoded",
     }
+    url = urlunparse(("https", HOST, "/oauth2/token", "", "", ""))
     r = requests.post(
-        "%s/oauth2/token" % (HOST),
-        headers=headers,
-        data="grant_type=client_credentials",
+        url, headers=headers, data="grant_type=client_credentials",
     )
     return r.json()["access_token"]
 
@@ -44,8 +43,8 @@ def getDevices(token):
             list:  The list of active devices
     """
     headers = {"Authorization": "Bearer " + token}
-    request_url = "%s/api/v1/devices" % (HOST)
-    r = requests.get(request_url, headers=headers)
+    url = urlunparse(("https", HOST, "/api/v1/devices", "", "", ""))
+    r = requests.get(url, headers=headers)
     return r.json()
 
 
@@ -58,8 +57,8 @@ def getDeviceGroups(token):
             list:  The list of device groups
     """
     headers = {"Authorization": "Bearer " + token}
-    request_url = "%s/api/v1/devicegroups" % (HOST)
-    r = requests.get(request_url, headers=headers)
+    url = urlunparse(("https", HOST, "/api/v1/devicegroups", "", "", ""))
+    r = requests.get(url, headers=headers)
     return r.json()
 
 

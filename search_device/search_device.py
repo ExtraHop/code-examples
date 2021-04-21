@@ -7,9 +7,10 @@
 
 import json
 import requests
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
-HOST = "https://extrahop.example.com"
+HOST = "extrahop.example.com"
 # The API key.
 APIKEY = "123456789abcdefghijklmnop"
 # An array of IP addresses.
@@ -27,7 +28,7 @@ def searchDevice(search):
         Returns:
             dict: The metadata of the device that matches the criteria
     """
-    url = HOST + "/api/v1/devices/search"
+    url = urlunparse(("https", HOST, "/api/v1/devices/search", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % APIKEY}
     r = requests.post(
         url, headers=headers, verify=False, data=json.dumps(search)

@@ -9,6 +9,7 @@ import requests
 import csv
 import logging
 import sys
+from urllib.parse import urlunparse
 
 SYSTEM_LIST = "systems.csv"
 
@@ -24,7 +25,17 @@ def getRollbackVersion(system):
             bool: Indicates whether the firmware can be rolled back on the system
     """
     headers = {"Authorization": f"ExtraHop apikey={system['api_key']}"}
-    url = f"{system['host']}api/v1/extrahop/firmware/previous"
+    url = urlunparse(
+        (
+            "https",
+            system["host"],
+            "/api/v1/extrahop/firmware/previous",
+            "",
+            "",
+            "",
+        )
+    )
+
     r = requests.get(url, headers=headers)
     if r.status_code == 200:
         print(
@@ -46,7 +57,16 @@ def rollbackFirmware(system):
             system (dict): The object that contains the system host and api key
     """
     headers = {"Authorization": f"ExtraHop apikey={system['api_key']}"}
-    url = f"{system['host']}api/v1/extrahop/firmware/previous/rollback"
+    url = urlunparse(
+        (
+            "https",
+            system["host"],
+            "/api/v1/extrahop/firmware/previous/rollback",
+            "",
+            "",
+            "",
+        )
+    )
     r = requests.post(url, headers=headers)
     if r.status_code == 202:
         print(f"Started rollback process on {system['host']}")

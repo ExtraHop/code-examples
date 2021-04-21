@@ -8,6 +8,7 @@
 import json
 import requests
 import unicodecsv as csv
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system. Note that this hostname is not the hostname of the connected Explore appliance that the records are stored on.
 HOST = "extrahop.example.com"
@@ -56,7 +57,7 @@ def recordQuery(query):
         Returns:
             dict: The records that matched the query parameters
     """
-    url = HOST + "/api/v1/records/search"
+    url = urlunparse(("https", HOST, "/api/v1/records/search", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
     r = requests.post(url, headers=headers, data=json.dumps(query))
     try:
@@ -78,7 +79,7 @@ def continueQuery(cursor):
         Returns:
             dict: The records on this page of the query results
     """
-    url = HOST + "/api/v1/records/cursor"
+    url = urlunparse(("https", HOST, "/api/v1/records/cursor", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
     query = {"cursor": cursor}
     r = requests.post(url, headers=headers, data=json.dumps(query))
