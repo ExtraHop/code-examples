@@ -10,16 +10,17 @@ import requests
 import sys
 import logging
 import base64
+from urllib.parse import urlunparse
 
 # The hostname of the ExtraHop system you are migrating detection
 # hiding rules from
-SOURCE_HOST = "https://zebraman"
+SOURCE_HOST = "extrahop.example.com"
 # The API KEY on the ExtraHop system you are migrating detection
 # hiding rules from
-SOURCE_API_KEY = "aNXQ2--8dszqlX_ZBFDQ-eIiw5zJ701-WV_-kI-g9kk"
+SOURCE_API_KEY = "123456789abcdefghijklmnop"
 # The hostname of the Reveal(x) 360 API you are migrating detection
 # hiding rules to.
-TARGET_HOST = "https://example.api.com"
+TARGET_HOST = "example.api.com"
 # The ID of the REST API credentials for Reveal(x) 360
 TARGET_ID = "abcdefg123456789"
 # The secret of the REST API credentials for Reveal(x) 360
@@ -34,7 +35,9 @@ def getRules():
         Returns:
             rules (list): List of rule objects
     """
-    url = f"{SOURCE_HOST}/api/v1/detections/rules/hiding"
+    url = urlunparse(
+        ("https", SOURCE_HOST, "/api/v1/detections/rules/hiding", "", "", "")
+    )
     headers = {
         "Authorization": f"ExtraHop apikey={SOURCE_API_KEY}",
         "Content-Type": "application/json",
@@ -65,10 +68,9 @@ def getToken():
         "Authorization": "Basic " + auth,
         "Content-Type": "application/x-www-form-urlencoded",
     }
+    url = urlunparse(("https", TARGET_HOST, "/oauth2/token", "", "", ""))
     r = requests.post(
-        "%s/oauth2/token" % (TARGET_HOST),
-        headers=headers,
-        data="grant_type=client_credentials",
+        url, headers=headers, data="grant_type=client_credentials",
     )
     return r.json()["access_token"]
 
@@ -117,7 +119,9 @@ def getMac(dev_id):
         Returns:
             str: The MAC address of the device
     """
-    url = f"{SOURCE_HOST}/api/v1/devices/{dev_id}"
+    url = urlunparse(
+        ("https", SOURCE_HOST, f"/api/v1/devices/{dev_id}", "", "", "")
+    )
     headers = {
         "Authorization": f"ExtraHop apikey={SOURCE_API_KEY}",
         "Content-Type": "application/json",
@@ -143,7 +147,9 @@ def getDevId(macaddr, token):
         Returns:
             int: The numerical ID of the device
     """
-    url = f"{TARGET_HOST}/api/v1/devices/search"
+    url = urlunparse(
+        ("https", TARGET_HOST, "/api/v1/devices/search", "", "", "")
+    )
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -184,7 +190,9 @@ def getName(group_id):
         Returns:
             str: The name of the device group
     """
-    url = f"{SOURCE_HOST}/api/v1/devicegroups/{group_id}"
+    url = urlunparse(
+        ("https", SOURCE_HOST, f"/api/v1/devicegroups/{group_id}", "", "", "")
+    )
     headers = {
         "Authorization": f"ExtraHop apikey={SOURCE_API_KEY}",
         "Content-Type": "application/json",
@@ -210,7 +218,7 @@ def getGroupId(group_name, token):
         Returns:
             int: The ID of the device group
     """
-    url = f"{TARGET_HOST}/api/v1/devicegroups"
+    url = urlunparse(("https", TARGET_HOST, "/api/v1/devicegroups", "", "", ""))
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -249,7 +257,9 @@ def makeRule(rule, token):
     # need to remove null descriptions
     if rule["description"] == None:
         rule.pop("description")
-    url = f"{TARGET_HOST}/api/v1/detections/rules/hiding"
+    url = urlunparse(
+        ("https", TARGET_HOST, "/api/v1/detections/rules/hiding", "", "", "")
+    )
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
