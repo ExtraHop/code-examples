@@ -11,6 +11,8 @@ import csv
 from urllib.parse import urlunparse
 
 SYSTEM_LIST = "systems.csv"
+# The maximum number of times to retry uploading the firmware
+MAX_RETRIES = 5
 
 # Retrieve URLs, API keys, and firmware file paths
 systems = []
@@ -21,7 +23,7 @@ with open(SYSTEM_LIST, "rt", encoding="ascii") as f:
         systems.append(system)
 
 
-def uploadFirmware(host, api_key, firmware):
+def uploadFirmware(host, api_key, firmware, retry):
     """
     Method that uploads firmware to an ExtraHop system.
 
@@ -44,8 +46,12 @@ def uploadFirmware(host, api_key, firmware):
     if r.status_code == 201:
         print("Uploaded firmware to " + host)
         return True
-    else:
+    elif retry < MAX_RETRIES:
         print("Failed to upload firmware to " + host)
+        print("Retrying firmware upload")
+        uploadFirmware(host, api_key, firmware, retry + 1)
+    else:
+        print("Firmware upload to " + host + " failed")
         print(r.text)
         return False
 
@@ -69,7 +75,7 @@ def upgradeFirmware(host, api_key):
     r = requests.post(url, headers=headers)
     print(r.status_code)
     if r.status_code == 202:
-        print("Upgraded firmware on " + host)
+        print("Started firmware upgrade process on " + host)
         return True
     else:
         print("Failed to upgrade firmware on " + host)
@@ -82,6 +88,6 @@ for system in systems:
     host = system["host"]
     api_key = system["api_key"]
     firmware = system["firmware"]
-    upload_success = uploadFirmware(host, api_key, firmware)
+    upload_success = uploadFirmware(host, api_key, firmware, 0)
     if upload_success:
         upgradeFirmware(host, api_key)
