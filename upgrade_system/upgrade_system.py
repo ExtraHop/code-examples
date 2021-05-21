@@ -9,10 +9,14 @@ import os
 import requests
 import csv
 from urllib.parse import urlunparse
+import threading
+import time
 
 SYSTEM_LIST = "systems.csv"
 # The maximum number of times to retry uploading the firmware
 MAX_RETRIES = 5
+# The maximum number of concurrent threads
+MAX_THREADS = 2
 
 # Retrieve URLs, API keys, and firmware file paths
 systems = []
@@ -21,6 +25,35 @@ with open(SYSTEM_LIST, "rt", encoding="ascii") as f:
     for row in reader:
         system = {"host": row[0], "api_key": row[1], "firmware": row[2]}
         systems.append(system)
+
+
+class Upgrader(threading.Thread):
+    """
+    A class for a thread that upgrades an appliance.
+
+    Attributes
+    ----------
+    host : str
+        The IP address or hostname of the ExtraHop system
+    api_key : str
+        An API key on the ExtraHop system
+    firmware : str
+        The path of the firmware .tar file
+    """
+
+    def __init__(self, host, api_key, firmware):
+        threading.Thread.__init__(self)
+        self.host = host
+        self.api_key = api_key
+        self.firmware = firmware
+
+    def run(self):
+        print(f"Starting upgrade thread for {self.host}")
+        upload_success = uploadFirmware(
+            self.host, self.api_key, self.firmware, 0
+        )
+        if upload_success:
+            upgradeFirmware(self.host, self.api_key)
 
 
 def uploadFirmware(host, api_key, firmware, retry):
@@ -83,11 +116,14 @@ def upgradeFirmware(host, api_key):
         return False
 
 
-# Upgrade firmware for each system
-for system in systems:
-    host = system["host"]
-    api_key = system["api_key"]
-    firmware = system["firmware"]
-    upload_success = uploadFirmware(host, api_key, firmware, 0)
-    if upload_success:
-        upgradeFirmware(host, api_key)
+if __name__ == "__main__":
+    for system in systems:
+        host = system["host"]
+        api_key = system["api_key"]
+        firmware = system["firmware"]
+
+        while threading.activeCount() > MAX_THREADS:
+            time.sleep(0.1)
+
+        u = Upgrader(host, api_key, firmware)
+        u.start()
