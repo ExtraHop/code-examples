@@ -88,24 +88,24 @@ def replaceId(participant, token):
     """
     if participant["object_type"] == "device":
         macaddr = getMac(participant["object_id"])
-        if macaddr != -1:
+        if macaddr == None:
+            return {}
+        else:
             new_id = getDevId(macaddr, token)
-        else:
+        if new_id == -1:
             return {}
-        if new_id != -1:
+        else:
             participant["object_id"] = new_id
-        else:
-            return {}
     elif participant["object_type"] == "device_group":
         group_name = getName(participant["object_id"])
-        if group_name != "":
+        if group_name == "":
+            return {}
+        else:
             new_id = getGroupId(group_name, token)
-        else:
+        if new_id == -1:
             return {}
-        if new_id != -1:
+        else:
             participant["object_id"] = new_id
-        else:
-            return {}
     return participant
 
 
@@ -133,7 +133,7 @@ def getMac(dev_id):
         logging.warning(r.status_code)
         logging.warning(r.text)
         logging.warning(f"Unable to retrieve MAC address for {dev_id}")
-        return -1
+        return None
 
 
 def getDevId(macaddr, token):
@@ -160,7 +160,7 @@ def getDevId(macaddr, token):
         devices = r.json()
         if len(devices) == 0:
             logging.warning(
-                f"No equivalent device exists on Reveal(x)360 for {dev_id}"
+                f"No equivalent device exists on Reveal(x)360 for {macaddr}"
             )
             return -1
         if len(devices) > 1:
@@ -169,14 +169,14 @@ def getDevId(macaddr, token):
             for device in devices:
                 if device["is_l3"] == False:
                     return device["id"]
-            logging.warning(f"No L2 device found for {devi_id}")
+            logging.warning(f"No L2 device found for {macaddr}")
             return -1
         else:
             return devices[0]["id"]
     else:
         logging.warning(r.status_code)
         logging.warning(r.text)
-        logging.warning(f"Unable to retrieve device ID for {dev_id}")
+        logging.warning(f"Unable to retrieve device ID for {macaddr}")
         return -1
 
 
@@ -203,7 +203,7 @@ def getName(group_id):
     else:
         logging.warning(r.status_code)
         logging.warning(r.text)
-        logging.warning(f"Unable to retrieve MAC address for {dev_id}")
+        logging.warning(f"Unable to retrieve name for {group_id}")
         return ""
 
 
