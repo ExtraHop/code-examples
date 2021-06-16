@@ -53,13 +53,12 @@ class Upgrader(threading.Thread):
 
     def run(self):
         print(f"Starting upgrade thread for {self.host}")
-        has_jobs = checkForJobsEndpoint(self.host, self.api_key)
         upload_success = uploadFirmware(
             self.host, self.api_key, self.firmware, 0
         )
         if upload_success:
-            job_location = upgradeFirmware(self.host, self.api_key, has_jobs)
-            if has_jobs and job_location:
+            job_location = upgradeFirmware(self.host, self.api_key)
+            if job_location:
                 monitorStatus(self.host, self.api_key, job_location)
 
 
@@ -82,29 +81,29 @@ def uploadFirmware(host, api_key, firmware, retry):
     url = urlunparse(("https", host, "/api/v1/extrahop/firmware", "", "", ""))
     file_path = os.path.join(firmware)
     data = open(file_path, "rb")
+    print(f"Uploading firmware to {host}")
     r = requests.post(url, data=data, headers=headers)
     if r.status_code == 201:
-        print("Uploaded firmware to " + host)
+        print(f"Uploaded firmware to {host}")
         return True
     elif retry < MAX_RETRIES:
-        print("Failed to upload firmware to " + host)
+        print(f"Failed to upload firmware to {host}")
         print("Retrying firmware upload")
         uploadFirmware(host, api_key, firmware, retry + 1)
     else:
-        print("Firmware upload to " + host + " failed")
+        print(f"Firmware upload to {host} failed")
         print(r.text)
         return False
 
 
 # Function that upgrades firmware on system
-def upgradeFirmware(host, api_key, has_jobs):
+def upgradeFirmware(host, api_key):
     """
     Method that upgrades firmware on an ExtraHop system
 
         Parameters:
             host (str): The IP address or hostname of the ExtraHop system
             api_key (str): An API key on the ExtraHop system
-            has_jobs (bool): Indicates whether the ExtraHop system has the /jobs endpoint
 
         Returns:
             str: The relative URL of the job status
@@ -114,14 +113,14 @@ def upgradeFirmware(host, api_key, has_jobs):
         ("https", host, "/api/v1/extrahop/firmware/latest/upgrade", "", "", "")
     )
     r = requests.post(url, headers=headers)
-    if r.status_code == 202 or r.status_code == 201:
-        print("Started firmware upgrade process on " + host)
-        if has_jobs:
+    if r.status_code == 202:
+        print(f"Started firmware upgrade process on {host}")
+        if "Location" in r.headers:
             return r.headers["Location"]
         else:
             return None
     else:
-        print("Failed to upgrade firmware on " + host)
+        print(f"Failed to upgrade firmware on {host}")
         print(r.status_code)
         return None
 
@@ -156,7 +155,9 @@ def monitorStatus(host, api_key, job_location):
                 print(f"Upgrade for {host} {status}.")
                 return
             elif status == "TIMEOUT":
-                print(f"Upgrade for {host} timed out because the job took longer than expected.\nTo verify the progress of the upgrade, go to the ExtraHop system in a web browser.")
+                print(
+                    f"Upgrade for {host} timed out because the job took longer than expected.\nTo verify the progress of the upgrade, go to the ExtraHop system in a web browser."
+                )
                 return
             else:
                 print(f"Upgrade for {host} is {status}.")
@@ -192,22 +193,6 @@ def getFirmware(host, api_key):
         print(f"Failed to retrieve firmware version from {host}")
         print(r.status_code)
         return "8.4.0"
-
-
-def checkForJobsEndpoint(host, api_key):
-    """
-    Method that finds whether the firmware running on a system
-    has the /jobs endpoint by checking the firmware version.
-
-        Parameters:
-            host (str): The IP address or hostname of the ExtraHop system
-            api_key (str): An API key on the ExtraHop system
-
-        Returns:
-            bool: Indicates whether the /jobs endpoint exists on the system
-    """
-    firmware_version = getFirmware(host, api_key)
-    return version.parse(firmware_version) >= version.parse("8.5.0")
 
 
 if __name__ == "__main__":
