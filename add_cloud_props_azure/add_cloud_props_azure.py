@@ -1,9 +1,10 @@
+#!/usr/bin/python3
+
 # COPYRIGHT 2021 BY EXTRAHOP NETWORKS, INC.
 #
 # This file is subject to the terms and conditions defined in
 # file 'LICENSE', which is part of this source code package.
 
-#!/usr/bin/python3
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient

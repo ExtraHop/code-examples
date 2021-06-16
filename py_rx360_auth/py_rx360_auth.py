@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 
+# COPYRIGHT 2021 BY EXTRAHOP NETWORKS, INC.
+#
+# This file is subject to the terms and conditions defined in
+# file 'LICENSE', which is part of this source code package.
+
 import requests
 import base64
 import json

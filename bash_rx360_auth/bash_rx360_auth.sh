@@ -1,5 +1,10 @@
 #!/bin/bash -x
 
+# COPYRIGHT 2021 BY EXTRAHOP NETWORKS, INC.
+#
+# This file is subject to the terms and conditions defined in
+# file 'LICENSE', which is part of this source code package.
+
 # The hostname of the Reveal(x) 360 API. This hostname is displayed in Reveal(x)
 # 360 on the API Access page under API Endpoint. The hostname does not
 # include the /oauth/token.
