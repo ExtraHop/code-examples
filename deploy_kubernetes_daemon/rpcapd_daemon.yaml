@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: extrahop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: extrahop-rpcapd
+  namespace: extrahop
+  labels:
+    component: extrahop-rpcapd
+spec:
+  selector:
+    matchLabels:
+      component: extrahop-rpcapd
+  template:
+    metadata:
+      labels:
+        component: extrahop-rpcapd
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: extrahop/norpcapd
+                operator: DoesNotExist
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: rpcapd
+        image: EXAMPLE-REGISTRY/rpcapd:latest
+        securityContext:
+           privileged: true
+        env:
+        - name: EXTRAHOP_SENSOR_IP
+          value: 10.10.10.10
+        - name: RPCAPD_TARGET_PORT
+          value: 2003
+        - name: PODNET
+          value: 10.10.11.0/24
+        - name: SVCNET
+          value: 10.10.12.0/24
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists

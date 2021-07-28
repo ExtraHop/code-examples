@@ -54,6 +54,12 @@ This Python script creates device groups through the REST API. The script create
 
 For more information, see [Create a device group through the REST API](https://docs.extrahop.com/current/rest-create-device-group/).
 
+### deploy-kubernetes-daemon
+
+This directory contains files that configure a Kubernetes DaemonSet that forwards packets from pods to the ExtraHop system.
+
+For more information, see [Configure packet forwarding for Kubernetes pods](https://docs.extrahop.com/current/configure-rpcap-kubernetes). 
+
 ### extract-device-list
 
 This Python script extracts the device list, including all device metadata, and writes the list to a CSV file.
