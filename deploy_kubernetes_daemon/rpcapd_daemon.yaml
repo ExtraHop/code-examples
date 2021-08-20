@@ -37,7 +37,7 @@ spec:
         - name: EXTRAHOP_SENSOR_IP
           value: 10.10.10.10
         - name: RPCAPD_TARGET_PORT
-          value: 2003
+          value: "2003"
         - name: PODNET
           value: 10.10.11.0/24
         - name: SVCNET
