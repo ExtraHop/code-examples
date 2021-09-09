@@ -5,12 +5,12 @@
 # This file is subject to the terms and conditions defined in
 # file 'LICENSE', which is part of this source code package.
 
-import http.client
+import requests
 import json
 import csv
 import datetime
-import ssl
 import sys
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
@@ -27,83 +27,119 @@ ADVANCED_ONLY = False
 # Retrieves only devices that have been identified as critical by the ExtraHop system.
 CRITICAL_ONLY = False
 
-headers = {}
-headers["Accept"] = "application/json"
-headers["Authorization"] = "ExtraHop apikey=" + APIKEY
 
-
-def getDevices(offset):
+def getAllDevices():
     """
-    Method that retrieves devices from the ExtraHop system.
-
-        Parameters:
-            offset (int): The number of device results to skip.
+    Method that retrieves all devices from the ExtraHop system.
 
         Returns:
-            devices (list): A list of device dictionaries.
+            device_list(list): A list of all devices on the system
     """
-    conn = http.client.HTTPSConnection(HOST)
-    conn.request(
-        "GET",
-        "/api/v1/devices?limit=%d&offset=%d&search_type=any" % (LIMIT, offset),
-        headers=headers,
+    continue_search = True
+    offset = 0
+    device_list = []
+    while continue_search:
+        new_devices = getDevices(LIMIT, offset)
+        device_list += new_devices
+        if len(new_devices) > 0:
+            offset += LIMIT
+        else:
+            continue_search = False
+    return device_list
+
+
+def getDevices(limit, offset):
+    """
+    Method that retrieves a set of devices from the ExtraHop system.
+
+        Parameters:
+            limit (int): The maximum number of devices to retrieve
+            offset (int): The number of device results to skip
+
+        Returns:
+            devices (list): A list of device dictionaries
+    """
+    url = urlunparse(
+        (
+            "https",
+            HOST,
+            f"/api/v1/devices?limit={LIMIT}&offset={offset}&search_type=any",
+            "",
+            "",
+            "",
+        )
     )
-    resp = conn.getresponse()
-    if resp.status == 200:
-        devices = json.loads(resp.read())
-        conn.close()
-        return devices
+    headers = {
+        "Authorization": f"ExtraHop apikey={API_KEY}",
+        "Accept": "application/json",
+    }
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        return r.json()
     else:
         print("Error retrieving Device list")
-        print(resp.status, resp.reason)
-        resp.read()
-        dTable = None
-        conn.close()
+        print(r.status_code)
+        print(r.text)
         sys.exit()
 
 
-continue_search = True
-offset = 0
-dTable = []
-while continue_search:
-    new_devices = getDevices(offset)
-    offset += LIMIT
-    dTable += new_devices
-    if len(new_devices) > 0:
-        continue_search = True
-    else:
-        continue_search = False
+def saveToCSV(devices):
+    """
+    Method that saves a list of device dictionaries to a CSV file.
 
-if dTable != None:
-    print(" - Saving %d devices in CSV file" % len(dTable))
+        Parameters:
+            devices (list): The device dictionaries
+
+        Returns:
+            saved (list): A list of devices that were saved to the CSV file
+            skipped (list): A list of devices that were not saved to the CSV file
+    """
+    print(f"Saving {len(devices)} devices to CSV file")
     with open(FILENAME, "w") as csvfile:
         csvwriter = csv.writer(csvfile, dialect="excel")
-        csvwriter.writerow(list(dTable[0].keys()))
-        w = 0
-        s = 0
-        for d in dTable:
+        csvwriter.writerow(list(devices[0].keys()))
+        saved = []
+        skipped = []
+        for device in devices:
             if ADVANCED_ONLY == False or (
-                ADVANCED_ONLY == True and d["analysis"] == "advanced"
+                ADVANCED_ONLY == True and device["analysis"] == "advanced"
             ):
                 if CRITICAL_ONLY == False or (
-                    CRITICAL_ONLY == True and d["critical"] == True
+                    CRITICAL_ONLY == True and device["critical"] == True
                 ):
-                    if d["is_l3"] | SAVEL2:
-                        w += 1
-                        d["mod_time"] = datetime.datetime.fromtimestamp(
-                            d["mod_time"] / 1000.0
+                    if device["is_l3"] | SAVEL2:
+                        saved.append(device)
+                        device["mod_time"] = datetime.datetime.fromtimestamp(
+                            device["mod_time"] / 1000.0
                         )
-                        d["user_mod_time"] = datetime.datetime.fromtimestamp(
-                            d["user_mod_time"] / 1000.0
+                        device[
+                            "user_mod_time"
+                        ] = datetime.datetime.fromtimestamp(
+                            device["user_mod_time"] / 1000.0
                         )
-                        d["discover_time"] = datetime.datetime.fromtimestamp(
-                            d["discover_time"] / 1000.0
+                        device[
+                            "discover_time"
+                        ] = datetime.datetime.fromtimestamp(
+                            device["discover_time"] / 1000.0
                         )
-                        csvwriter.writerow(list(d.values()))
+                        csvwriter.writerow(list(device.values()))
                     else:
-                        s += 1
+                        skipped.append(device)
                 else:
-                    s += 1
+                    skipped.append(device)
             else:
-                s += 1
-        print(" - Wrote %d devices, skipped %d devices " % (w, s))
+                skipped.append(device)
+        return saved, skipped
+
+
+def main():
+    devices = getAllDevices()
+    if devices:
+        saved, skipped = saveToCSV(devices)
+        print(
+            f"Saved {str(len(saved))} devices, skipped {str(len(skipped))} devices to {FILENAME}."
+        )
+
+
+if __name__ == "__main__":
+    main()

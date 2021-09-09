@@ -5,39 +5,65 @@
 # This file is subject to the terms and conditions defined in
 # file 'LICENSE', which is part of this source code package.
 
-import http.client
 import json
+import requests
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
 # The API key.
-APIKEY = "123456789abcdefghijklmnop"
+API_KEY = "123456789abcdefghijklmnop"
 # The username of the current dashboard owner.
 CURRENT = "marksmith"
 # The username of the new dashboard owner.
 NEW = "paulanderson"
 
-headers = {
-    "Accept": "application/json",
-    "Authorization": "ExtraHop apikey=%s" % APIKEY,
-}
-conn = http.client.HTTPSConnection(HOST)
-conn.request("GET", "/api/v1/dashboards", headers=headers)
-resp = conn.getresponse()
-parsed_resp = json.loads(resp.read())
 
-for dashboard in parsed_resp:
-    if dashboard["owner"] == CURRENT:
-        print(
-            "Dashboard {id} owned by " + CURRENT + "."
-            " Switching ownership...".format(id=dashboard["id"])
-        )
-        config = {"owner": NEW}
-        conn.request(
-            "PATCH",
-            "/api/v1/dashboards/{id}".format(id=dashboard["id"]),
-            json.dumps(config),
-            headers=headers,
-        )
-        resp = conn.getresponse()
-        resp.read()
+def getDashboards():
+    """
+    Method that retrieves all dashboards from an ExtraHop system.
+
+        Returns:
+            list: The dashboards on the ExtraHop system
+    """
+    url = urlunparse(("https", HOST, "/api/v1/dashboards", "", "", ""))
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        return r.json()
+    else:
+        print("Failed to retrieve dashboards")
+        print(r.text)
+        print(status_code)
+
+
+def changeOwner(dashboard):
+    """
+    Method that changes the owner of a dashboard.
+
+        Parameters:
+            dashboard (dict): The dashboard dictionary
+    """
+    url = urlunparse(
+        ("https", HOST, f"/api/v1/dashboards/{dashboard['id']}", "", "", "")
+    )
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    data = {"owner": NEW}
+    r = requests.patch(url, headers=headers, json=data)
+    if r.status_code == 204:
+        print(f"Switching owner of {dashboard['name']} from {CURRENT} to {NEW}")
+    else:
+        print(f"Failed to update owner of dashboard {dashboard['name']}")
+        print(r.text)
+        print(status_code)
+
+
+def main():
+    dashboards = getDashboards()
+    for dashboard in dashboards:
+        if dashboard["owner"] == CURRENT:
+            changeOwner(dashboard)
+
+
+if __name__ == "__main__":
+    main()

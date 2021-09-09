@@ -5,9 +5,11 @@
 # This file is subject to the terms and conditions defined in
 # file 'LICENSE', which is part of this source code package.
 
-import http.client
+import requests
 import json
 import csv
+import sys
+from urllib.parse import urlunparse
 
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
@@ -18,14 +20,27 @@ TAG = "new-tag"
 # The file that contains the list of IP addresses.
 IP_LIST = "ip_list.csv"
 
-headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Authorization": "ExtraHop apikey=%s" % APIKEY,
-}
+
+def readCSV(filepath):
+    """
+    Method that reads a list of values from a CSV file
+
+        Parameters:
+            filepath (str): The path of the CSV file
+
+        Returns:
+            values (list): The list of values
+    """
+    values = []
+    with open(IP_LIST, "rt", encoding="ascii") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            for item in row:
+                values.append(item)
+    return values
 
 
-def get_tag_id(tag):
+def getTagId(tag_name):
     """
     Method that retrieves the ID of a device tag.
 
@@ -35,70 +50,120 @@ def get_tag_id(tag):
         Returns:
             tag_id (str): The ID of the device tag
     """
-    tag_id = ""
-    conn = http.client.HTTPSConnection(HOST, context=context)
-    conn.request("GET", "/api/v1/tags", headers=headers)
-    resp = conn.getresponse()
-    tags = json.loads(resp.read())
-    tag_index = 0
-    while tag_id == "" and tag_index < len(tags):
-        if tags[tag_index]["name"] == tag:
-            tag_id = tags[tag_index]["id"]
-        tag_index += 1
-    return tag_id
-
-
-# If the tag does not already exist, create it
-tag_id = get_tag_id(TAG)
-if tag_id != "":
-    print(TAG + " already exists")
-else:
-    print("Creating " + TAG + " tag")
-    body = {"name": TAG}
-    conn = http.client.HTTPSConnection(HOST, context=context)
-    conn.request("POST", "/api/v1/tags", headers=headers, body=json.dumps(body))
-    resp = conn.getresponse()
-    if resp.status == 201:
-        print(TAG + " tag created successfully!")
+    url = urlunparse(("https", HOST, "/api/v1/tags", "", "", ""))
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        for tag in r.json():
+            if tag["name"] == tag_name:
+                return tag["id"]
     else:
-        print("Error: could not create " + TAG + " tag")
+        print("Unable to retrieve tags")
+        print(r.status_code)
+        print(r.text)
         sys.exit()
-    tag_id = get_tag_id(TAG)
 
-# Retrieve IPs from CSV file
-device_ips = []
-with open(IP_LIST, "rt", encoding="ascii") as f:
-    reader = csv.reader(f)
-    for row in reader:
-        for item in row:
-            device_ips.append(item)
 
-# Retrieve IDs of devices with the specified IPs
-device_ids = []
-tagged_devices = []
-for ip in device_ips:
-    conn = http.client.HTTPSConnection(HOST, context=context)
-    url = "/api/v1/devices?limit=100&search_type=ip%20address&value=" + ip
-    conn.request("GET", url, headers=headers)
-    resp = conn.getresponse()
-    try:
-        devices = json.loads(resp.read())
-    except:
-        continue
-    for device in devices:
-        device_ids.append(device["id"])
-        tagged_devices.append(device["display_name"])
+def getDevicesByIp(ip):
+    """
+    Method that retrieves the devices with a specified IP address
+
+        Parameters:
+            ip (str): The IP address
+
+        Returns:
+            devices (list): The device objects
+    """
+    url = urlunparse(
+        (
+            "https",
+            HOST,
+            f"/api/v1/devices?limit=100&search_type=ip%20address&value={ip}",
+            "",
+            "",
+            "",
+        )
+    )
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        devices = []
+        for device in r.json():
+            devices.append(device)
+        return devices
+    else:
+        print("Unable to retrieve tags")
+        print(r.status_code)
+        print(r.text)
+        sys.exit()
+
 
 # Add the tag to each device
-body = {"assign": device_ids}
-conn = http.client.HTTPSConnection(HOST, context=context)
-url = "/api/v1/tags/%d/devices" % tag_id
-conn.request("POST", url, headers=headers, body=json.dumps(body))
-resp = conn.getresponse()
-if resp.status == 204:
-    print("Success! Assigned %s to the following devices:" % TAG)
-    for name in tagged_devices:
-        print("    " + name)
-    print("Assigned %s to %d devices" % (TAG, len(device_ids)))
-else:
-    print("Error! Failed to tag specified devices")
+def assignTag(tag_id, tag_name, devices):
+    """
+    Method that assigns a tag to a list of devices
+
+        Parameters:
+            tag_id (int): The ID of the tag
+            tag_name (str): The name of the tag
+            devices (list): The list of device dictionaries
+    """
+    ids = [device["id"] for device in devices]
+    data = {"assign": ids}
+    url = urlunparse(
+        ("https", HOST, f"/api/v1/tags/{tag_id}/devices", "", "", "")
+    )
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    r = requests.post(url, headers=headers, json=data)
+    if r.status_code == 204:
+        print(f"Assigned {tag_name} tag to the following devices:")
+        for device in devices:
+            print(f'    {device["display_name"]}')
+    elif r.status_code == 207:
+        print("Assigned {tag_name} tag to a limited number of devices.")
+        print(json.dumps(r.json(), indent=4))
+    else:
+        print(f"Failed to assign tag: {tag_name}")
+        print(r.status_code)
+        print(r.text)
+        sys.exit()
+
+
+def createTag(tag):
+    """
+    Method that creates a tag on the ExtraHop system.
+
+        Parameters:
+            tag (str): The name of the tag
+    """
+    url = urlunparse(("https", HOST, "/api/v1/tags", "", "", ""))
+    headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
+    data = {"name": TAG}
+    r = requests.post(url, headers=headers, json=data)
+    if r.status_code == 201:
+        print(f"Created tag {tag}")
+    else:
+        print("Failed to create tag")
+        print(r.status_code)
+        print(r.text)
+        sys.exit()
+
+
+def main():
+    # If the tag does not already exist, create it
+    tag_id = getTagId(TAG)
+    if tag_id:
+        print(f"{TAG} already exists")
+    else:
+        createTag(TAG)
+        tag_id = getTagId(TAG)
+    device_ips = readCSV(IP_LIST)
+    devices = []
+    # Retrieve IDs of devices with the specified IPs
+    for ip in device_ips:
+        devices += getDevicesByIp(ip)
+    assignTag(tag_id, TAG, devices)
+
+
+if __name__ == "__main__":
+    main()

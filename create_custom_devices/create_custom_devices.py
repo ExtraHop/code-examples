@@ -6,7 +6,8 @@
 # file 'LICENSE', which is part of this source code package.
 
 import json
-import http.client
+import requests
+from urllib.parse import urlunparse
 import csv
 import os.path
 
@@ -16,12 +17,6 @@ HOST = "extrahop.example.com"
 APIKEY = "123456789abcdefghijklmnop"
 # The path of the CSV file relative to the location of the script file.
 CSV_FILE = "device_list.csv"
-
-headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Authorization": "ExtraHop apikey=%s" % APIKEY,
-}
 
 
 def readCSV():
@@ -53,23 +48,32 @@ def createDevice(device):
 
         Parameters:
             device(dict): A device dictionary
+
+        Returns:
+            dev_id(string): The ID of the custom device
     """
-    conn = http.client.HTTPSConnection(HOST)
-    conn.request(
-        "POST",
-        "/api/v1/customdevices",
-        body=json.dumps(device),
-        headers=headers,
-    )
-    resp = conn.getresponse()
-    if resp.status != 201:
-        print("Could not create device: " + device["name"])
-        print("    " + json.loads(resp.read())["error_message"])
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": "ExtraHop apikey=%s" % API_KEY,
+    }
+    url = urlunparse(("https", HOST, "/api/v1/customdevices", "", "", ""))
+    r = requests.post(url, headers=headers, json=device)
+    if r.status_code == 201:
+        dev_id = os.path.basename(r.headers["location"])
+        print(f"Created custom device: {device['name']}")
+        return dev_id
     else:
-        print("Created custom device: " + device["name"])
-        device_id = os.path.basename(resp.getheader("location"))
+        print(f"Failed to create custom device: {device['name']}")
+        print(r.text)
+        print(r.status_code)
 
 
-devices = readCSV()
-for device in devices:
-    createDevice(device)
+def main():
+    devices = readCSV()
+    for device in devices:
+        dev_id = createDevice(device)
+
+
+if __name__ == "__main__":
+    main()
