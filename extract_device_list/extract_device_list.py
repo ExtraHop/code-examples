@@ -15,7 +15,7 @@ from urllib.parse import urlunparse
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
 # The API key.
-APIKEY = "123456789abcdefghijklmnop"
+API_KEY = "123456789abcdefghijklmnop"
 # The file that output will be written to.
 FILENAME = "devices.csv"
 # The maximum number of devices to retrieve with each GET request.

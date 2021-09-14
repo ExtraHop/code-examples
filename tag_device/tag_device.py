@@ -14,7 +14,7 @@ from urllib.parse import urlunparse
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
 # The API key.
-APIKEY = "123456789abcdefghijklmnop"
+API_KEY = "123456789abcdefghijklmnop"
 # The name of the tag.
 TAG = "new-tag"
 # The file that contains the list of IP addresses.

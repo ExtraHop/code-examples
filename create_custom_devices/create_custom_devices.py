@@ -14,7 +14,7 @@ import os.path
 # The IP address or hostname of the ExtraHop system.
 HOST = "extrahop.example.com"
 # The API key.
-APIKEY = "123456789abcdefghijklmnop"
+API_KEY = "123456789abcdefghijklmnop"
 # The path of the CSV file relative to the location of the script file.
 CSV_FILE = "device_list.csv"
 
