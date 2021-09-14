@@ -126,6 +126,12 @@ This Python script connects a list of sensors to Reveal(x) 360 through the REST 
 
 For more information, see [Connect to Reveal(x) 360 from self-managed sensors through the REST API](https://docs.extrahop.com/current/rest-connect-ccp/).
 
+### specify-high-value
+
+This Python script reads IP addresses from a CSV file and specifies all devices with those IP addresses as high value.
+
+For more information, see [Specify devices as high value through the REST API](https://docs.extrahop.com/current/rest-specify-high-value/).
+
 ### sunburst
 
 The Python scripts and JSON file in this directory search the ExtraHop system for indicators of the SUNBURST backdoor attack through the REST API. The SUNBURST trojan is dormant for long periods of time and might only occasionally contact external resources. To search for the large number of suspicious hostnames and IP addresses over a long period of time, we recommend that you query metrics through the REST API.
