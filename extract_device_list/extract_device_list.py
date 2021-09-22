@@ -24,8 +24,8 @@ LIMIT = 1000
 SAVEL2 = False
 # Retrieves only devices that are currently under advanced analysis.
 ADVANCED_ONLY = False
-# Retrieves only devices that have been identified as critical by the ExtraHop system.
-CRITICAL_ONLY = False
+# Retrieves only devices that are considered high value.
+HIGH_VALUE_ONLY = False
 
 
 def getAllDevices():
@@ -104,8 +104,8 @@ def saveToCSV(devices):
             if ADVANCED_ONLY == False or (
                 ADVANCED_ONLY == True and device["analysis"] == "advanced"
             ):
-                if CRITICAL_ONLY == False or (
-                    CRITICAL_ONLY == True and device["critical"] == True
+                if HIGH_VALUE_ONLY == False or (
+                    HIGH_VALUE_ONLY == True and device["critical"] == True
                 ):
                     if device["is_l3"] | SAVEL2:
                         saved.append(device)
