@@ -126,6 +126,12 @@ This Python script connects a list of sensors to Reveal(x) 360 through the REST 
 
 For more information, see [Connect to Reveal(x) 360 from self-managed sensors through the REST API](https://docs.extrahop.com/current/rest-connect-ccp/).
 
+### specify-custom-make-model
+
+This Python script reads custom makes and models from a CSV file and adds them to devices with specified IP addresses.
+
+For more information, see [Specify custom device makes and models through the REST API](https://docs.extrahop.com/current/rest-specify-custom-make-model/).
+
 ### specify-high-value
 
 This Python script reads IP addresses from a CSV file and specifies all devices with those IP addresses as high value.
