@@ -138,7 +138,7 @@ def update_old(file, dir, c, host):
     )
     file_path = os.path.join(dir, file)
     files = {"file": open(file_path, "rb")}
-    r = requests.put(url, files=files, headers=headers, verify=False)
+    r = requests.put(url, files=files, headers=headers)
     print(r.status_code)
     print(r.text)
 

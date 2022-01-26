@@ -34,7 +34,7 @@ def getObjects():
             list: A list of each object
     """
     url = HOST + "/api/v1/" + OBJECT_TYPE
-    r = requests.get(url, headers=headers, verify=False)
+    r = requests.get(url, headers=headers)
     return r.json()
 
 
@@ -50,7 +50,7 @@ def getSharing(object_id):
             dict: The sharing settings of the object
     """
     url = HOST + "/api/v1/" + OBJECT_TYPE + "/" + str(object_id) + "/sharing"
-    r = requests.get(url, headers=headers, verify=False)
+    r = requests.get(url, headers=headers)
     if r.status_code == 200:
         return r.json()
     else:

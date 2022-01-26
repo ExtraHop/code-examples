@@ -38,7 +38,7 @@ def addEHids(mac_addresses, mapping):
         rules.append({"field": "macaddr", "operand": macaddr, "operator": "="})
     search = {"filter": {"operator": "or", "rules": rules}}
     r = requests.post(
-        url, headers=headers, verify=False, data=json.dumps(search)
+        url, headers=headers, data=json.dumps(search)
     )
     if r.status_code != 200:
         print("Error! Unable to retrieve devices from ExtraHop.")

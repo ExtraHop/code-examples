@@ -31,7 +31,7 @@ def searchDevice(search):
     url = urlunparse(("https", HOST, "/api/v1/devices/search", "", "", ""))
     headers = {"Authorization": "ExtraHop apikey=%s" % APIKEY}
     r = requests.post(
-        url, headers=headers, verify=False, data=json.dumps(search)
+        url, headers=headers, data=json.dumps(search)
     )
     return r.json()[0]
 
