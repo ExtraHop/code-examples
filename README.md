@@ -158,7 +158,7 @@ For more information, see [Upgrade ExtraHop firmware through the REST API](https
 
 This Python script downloads firmware from ExtraHop Cloud Services and upgrades multiple ExtraHop systems by reading URLs and API keys from a CSV file.
 
-For more information, see [Upgrade ExtraHop firmware through the REST API with ExtraHop Cloud Services](https://docs.extrahop.com/current/rest-upgrade-firmware-cloud/).
+For more information, see [Upgrade ExtraHop firmware through the REST API with ExtraHop Cloud Services](https://docs.extrahop.com/current/rest-upgrade-cloud/).
 
 ### upload-stix
 
