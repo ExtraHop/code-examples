@@ -253,10 +253,12 @@ def makeRule(rule, token):
             bool: Indicates whether the rule was successfully created
     """
     rule_id = rule["id"]
-    # Rule descriptions cannot be null in POST requests, so we
-    # need to remove null descriptions
+    # Rule descriptions and properties cannot be null in POST requests, so we
+    # need to remove null descriptions and properties
     if rule["description"] == None:
         rule.pop("description")
+    if rule["properties"] == None:
+        rule.pop("properties")
     url = urlunparse(
         ("https", TARGET_HOST, "/api/v1/detections/rules/hiding", "", "", "")
     )
