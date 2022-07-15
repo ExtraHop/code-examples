@@ -60,7 +60,6 @@ def createDevice(device):
     url = urlunparse(("https", HOST, "/api/v1/customdevices", "", "", ""))
     r = requests.post(url, headers=headers, json=device)
     if r.status_code == 201:
-        dev_id = os.path.basename(r.headers["location"])
         print(f"Created custom device: {device['name']}")
         return dev_id
     else:

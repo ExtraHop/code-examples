@@ -10,13 +10,73 @@ import csv
 import time
 import requests
 from urllib.parse import urlunparse
+import base64
+import sys
 
-# The IP address or hostname of the ExtraHop system.
+# The IP address or hostname of the ExtraHop appliance or Reveal(x) 360 API
 HOST = "extrahop.example.com"
+
+# For Reveal(x) 360 authentication
+# The ID of the REST API credentials.
+ID = "abcdefg123456789"
+# The secret of the REST API credentials.
+SECRET = "123456789abcdefg987654321abcdefg"
+# A global variable for the temporary API access token (leave blank)
+TOKEN = ""
+
+# For self-managed appliance authentication
 # The API key.
 API_KEY = "123456789abcdefghijklmnop"
+
 # The filepath of the CSV file to save metrics to
 FILENAME = "output.csv"
+
+
+def getToken():
+    """
+    Method that generates and retrieves a temporary API access token for Reveal(x) 360 authentication.
+
+        Returns:
+            str: A temporary API access token
+    """
+    auth = base64.b64encode(bytes(ID + ":" + SECRET, "utf-8")).decode("utf-8")
+    headers = {
+        "Authorization": "Basic " + auth,
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    url = urlunparse(("https", HOST, "/oauth2/token", "", "", ""))
+    r = requests.post(
+        url,
+        headers=headers,
+        data="grant_type=client_credentials",
+    )
+    try:
+        return r.json()["access_token"]
+    except:
+        print(r.text)
+        print(r.status_code)
+        print("Error retrieveing token from Reveal(x) 360")
+        sys.exit()
+
+
+def getAuthHeader(force_token_gen=False):
+    """
+    Method that adds an authorization header for a request. For Reveal(x) 360, adds a temporary access
+    token. For self-managed appliances, adds an API key.
+
+        Parameters:
+            force_token_gen (bool): If true, always generates a new temporary API access token for the request
+
+        Returns:
+            header (str): The value for the header key in the headers dictionary
+    """
+    global TOKEN
+    if API_KEY != "123456789abcdefghijklmnop" and API_KEY != "":
+        return f"ExtraHop apikey={API_KEY}"
+    else:
+        if TOKEN == "" or force_token_gen == True:
+            TOKEN = getToken()
+        return f"Bearer {TOKEN}"
 
 
 def getMetrics(object_type, metric_category, name, object_ids, cycle):
@@ -40,7 +100,7 @@ def getMetrics(object_type, metric_category, name, object_ids, cycle):
         "object_ids": object_ids,
         "cycle": cycle,
     }
-    headers = {"Authorization": f"ExtraHop apikey={API_KEY}"}
+    headers = {"Authorization": getAuthHeader()}
     url = urlunparse(("https", HOST, "/api/v1/metrics", "", "", ""))
     r = requests.post(url, headers=headers, json=data)
     if r.status_code == 200:

@@ -10,22 +10,67 @@ import os
 import requests
 import csv
 from urllib.parse import urlunparse
+import base64
+import sys
 
-# The path of the CSV file with the HTTPS URLs and API keys of the systems.
-SYSTEM_LIST = "systems.csv"
+# The IP address or hostname of the Reveal(x) 360 API
+HOST = "extrahop.example.com"
+
+# The ID of the REST API credentials.
+ID = "abcdefg123456789"
+# The secret of the REST API credentials.
+SECRET = "123456789abcdefg987654321abcdefg"
+# A global variable for the temporary API access token (leave blank)
+TOKEN = ""
+
 # The path of the directory that contains the STIX files.
 STIX_DIR = "stix_dir"
 
-# Read system URLs and API keys from CSV file
-systems = []
-with open(SYSTEM_LIST, "rt", encoding="ascii") as f:
-    reader = csv.reader(f)
-    for row in reader:
-        system = {"host": row[0], "api_key": row[1]}
-        systems.append(system)
+
+def getToken():
+    """
+    Method that generates and retrieves a temporary API access token for Reveal(x) 360 authentication.
+
+        Returns:
+            str: A temporary API access token
+    """
+    auth = base64.b64encode(bytes(ID + ":" + SECRET, "utf-8")).decode("utf-8")
+    headers = {
+        "Authorization": "Basic " + auth,
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    url = urlunparse(("https", HOST, "/oauth2/token", "", "", ""))
+    r = requests.post(
+        url,
+        headers=headers,
+        data="grant_type=client_credentials",
+    )
+    try:
+        return r.json()["access_token"]
+    except:
+        print(r.text)
+        print(r.status_code)
+        print("Error retrieveing token from Reveal(x) 360")
+        sys.exit()
 
 
-def getCollections(host, api_key):
+def getAuthHeader(force_token_gen=False):
+    """
+    Method that adds an authorization header for a request.
+
+        Parameters:
+            force_token_gen (bool): If true, always generates a new temporary API access token for the request
+
+        Returns:
+            header (str): The value for the header key in the headers dictionary
+    """
+    global TOKEN
+    if TOKEN == "" or force_token_gen == True:
+        TOKEN = getToken()
+    return f"Bearer {TOKEN}"
+
+
+def getCollections(host):
     """
     Method that retrieves every threat collection on the ExtraHop system.
         Parameters:
@@ -34,7 +79,7 @@ def getCollections(host, api_key):
         Returns:
             list: A list of threat collection dictionaries
     """
-    headers = {"Authorization": "ExtraHop apikey=%s" % api_key}
+    headers = {"Authorization": getAuthHeader()}
     url = urlunparse(("https", host, "/api/v1/threatcollections", "", "", ""))
     r = requests.get(url, headers=headers)
     if r.status_code == 200:
@@ -80,7 +125,7 @@ def check_files(collections):
     return upload_list, skip_list
 
 
-def process_files(upload_files, skip_list, host, api_key):
+def process_files(upload_files, skip_list, host):
     """
     Method that processes each file in the STIX_DIR directory. If a file has not been
     uploaded before, the method creates a new threat collection for the file. If a
@@ -93,12 +138,12 @@ def process_files(upload_files, skip_list, host, api_key):
             host (str): The IP address or hostname of the ExtraHop system
     """
     for f in upload_files:
-        upload_new(f"{STIX_DIR}/{f}", host, api_key)
+        upload_new(f"{STIX_DIR}/{f}", host)
     for s in skip_list:
-        update_old(f"{STIX_DIR}/{s['filename']}", s["user_key"], host, api_key)
+        update_old(f"{STIX_DIR}/{s['filename']}", s["user_key"], host)
 
 
-def upload_new(file_path, host, api_key):
+def upload_new(file_path, host):
     """
     Method that uploads a new threat collection.
 
@@ -112,10 +157,8 @@ def upload_new(file_path, host, api_key):
     name = name.split(".")[0]
     files = {"file": open(file_path, "rb")}
     values = {"name": name}
-    headers = {"Authorization": "ExtraHop apikey=%s" % api_key}
-    r = requests.post(
-        url, data=values, files=files, headers=headers
-    )
+    headers = {"Authorization": getAuthHeader()}
+    r = requests.post(url, data=values, files=files, headers=headers)
     if r.status_code == 204:
         print("Upload complete")
     else:
@@ -125,20 +168,20 @@ def upload_new(file_path, host, api_key):
 
 
 # Function that updates an existing threat collection
-def update_old(file_path, user_key, host, api_key):
+def update_old(file_path, user_key, host):
     """
     Method that updates an existing threat collection.
 
         Parameters:
             file (str): The filenpath of the STIX file
             user_key (str): The user key of the threat collection
-            host (str): The IP address or hostname of the appliance
+            host (str): The IP address or hostname of the Reveal(x) 360 API
     """
     print("Updating " + file_path + " on " + host)
     url = urlunparse(
         (
             "https",
-            host,
+            HOST,
             f"api/v1/threatcollections/~{str(user_key)}",
             "",
             "",
@@ -146,7 +189,7 @@ def update_old(file_path, user_key, host, api_key):
         )
     )
     files = {"file": open(file_path, "rb")}
-    headers = {"Authorization": "ExtraHop apikey=%s" % api_key}
+    headers = {"Authorization": getAuthHeader()}
     r = requests.put(url, files=files, headers=headers)
     if r.status_code == 204:
         print("Update complete")
@@ -156,10 +199,9 @@ def update_old(file_path, user_key, host, api_key):
         print(r.text)
 
 
-# Process STIX files for each system
-for system in systems:
-    host = system["host"]
-    api_key = system["api_key"]
-    collections = getCollections(host, api_key)
-    update_files, skip_list = check_files(collections)
-    process_files(update_files, skip_list, host, api_key)
+# Process STIX files
+collections = getCollections(HOST)
+upload_files, skip_list = check_files(collections)
+print(f"{str(len(upload_files))} to upload")
+print(f"{str(len(skip_list))} to update")
+process_files(upload_files, skip_list, HOST)
