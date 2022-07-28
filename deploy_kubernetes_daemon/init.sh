@@ -11,6 +11,11 @@ for s in ${EXTRAHOP_SENSOR_IP}
 do
     echo "ActiveClient = ${s},${RPCAPD_TARGET_PORT}"
 done
+servicesubnet=" "
+for s in ${SVCNET}
+do
+    servicesubnet+="and (not ip net ${s}) "
+done
 IFS=$OLDIFS
 echo "NullAuthPermit = YES"
 exec 1>&6 6>&-
@@ -40,8 +45,6 @@ if [ "${PODNET}" != "" ]
 then
     subnets="${subnets},${PODNET}"
 fi
-
-servicesubnet=${SVCNET}
 
 # Arguments: subnet, direction
 # Returns: rule
@@ -103,7 +106,7 @@ compose_local_rule() {
 localsrcrule=$(compose_local_rule "src")
 localdstrule=$(compose_local_rule "dst")
 
-bpf_rules="not ip or (not ip proto 4) and (not ip net ${servicesubnet}) and (${subnetrule} or ${localsrcrule} or ${localdstrule})"
+bpf_rules="not ip or (not ip proto 4) ${servicesubnet} and (${subnetrule} or ${localsrcrule} or ${localdstrule})"
 
 echo ./rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
 ./rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
