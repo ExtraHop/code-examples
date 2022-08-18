@@ -1,0 +1,7 @@
+networks,external,description,name
+2001:0db8:85a3:0000:0000:8a2e:0370:7334,True,,[auto]: External - 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+192.168.1.2,False,group1,[auto]: Internal - 192.168.1.2
+192.168.1.1,False,group1,[auto]: Internal - 192.168.1.1
+123.45.6.5,False,group2,[auto]: Internal - 123.45.6.5
+1.2.3.4,False,,[auto]: Internal - 1.2.3.4
+123.45.6.6,True,group2,[auto]: External - 123.45.6.6
