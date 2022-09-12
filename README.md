@@ -72,6 +72,10 @@ This Python script extracts the total count of HTTP responses a server with an I
 
 For more information, see [Extract metrics through the REST API](https://docs.extrahop.com/current/rest-extract-metrics/).
 
+### f5-irules
+
+For more information about these iRules, see [Session key forwarding from an F5 LTM](https://docs.extrahop.com/current/customers/deploy-eda-f5ltm)
+
 ### lambda-traffic-mirror
 
 This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
