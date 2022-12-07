@@ -14,7 +14,7 @@ done
 servicesubnet=" "
 for s in ${SVCNET}
 do
-    servicesubnet+="and (not ip net ${s}) "
+    servicesubnet="${servicesubnet}and (not ip net ${s}) "
 done
 IFS=$OLDIFS
 echo "NullAuthPermit = YES"
