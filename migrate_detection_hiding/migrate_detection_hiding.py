@@ -70,7 +70,7 @@ def getToken():
     }
     url = urlunparse(("https", TARGET_HOST, "/oauth2/token", "", "", ""))
     r = requests.post(
-        url, headers=headers, data="grant_type=client_credentials",
+        url, headers=headers, data="grant_type=client_credentials"
     )
     return r.json()["access_token"]
 
@@ -106,7 +106,89 @@ def replaceId(participant, token):
             return {}
         else:
             participant["object_id"] = new_id
+    elif participant["object_type"] == "network_locality":
+        networks = getNetworks(participant["object_id"])
+        if networks == []:
+            return {}
+        else:
+            new_id = getLocalityId(networks, token)
+        if new_id == -1:
+            return {}
+        else:
+            participant["object_id"] = new_id
     return participant
+
+
+def getLocalityId(networks, token):
+    """
+    Method that searches Reveal(x) 360 for a network locality
+    that contains all of the specified networks and returns
+    the ID of that locality.
+
+        Parameters:
+            networks (list): A list of CIDR blocks and IP addresses
+            token (str): A temporary access token for Reveal(x) 360 authentication
+
+        Returns:
+            int: The numerical ID of the network locality
+    """
+    url = urlunparse(
+        ("https", TARGET_HOST, "/api/v1/networklocalities", "", "", "")
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        for locality in r.json():
+            if set(networks) == set(locality["networks"]):
+                return locality["id"]
+        logging.warning(
+            f"No equivalent network locality exists on Reveal(x)360 with the following IP addresses and CIDR blocks {networks}"
+        )
+        return -1
+    else:
+        logging.warning(r.status_code)
+        logging.warning(r.text)
+        logging.warning(
+            f"Unable to retrieve network localities from Reveal(x) 360"
+        )
+        return -1
+
+
+def getNetworks(locality_id):
+    """
+    Method that returns the networks in the specified network locality.
+
+        Parameters:
+            locality_id (int): The numeric identifier of the locality
+
+        Returns:
+            list: The list of IP addresses and CIDR blocks
+    """
+    url = urlunparse(
+        (
+            "https",
+            SOURCE_HOST,
+            f"/api/v1/networklocalities/{locality_id}",
+            "",
+            "",
+            "",
+        )
+    )
+    headers = {
+        "Authorization": f"ExtraHop apikey={SOURCE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        return r.json()["networks"]
+    else:
+        logging.warning(r.status_code)
+        logging.warning(r.text)
+        logging.warning(f"Unable to retrieve networks for {locality_id}")
+        return []
 
 
 def getMac(dev_id):
@@ -296,15 +378,19 @@ def updateParticipants(rule, token):
                 f"Retrieving equivalent participant IDs for rule: {rule['id']}"
             )
             participant = rule[role]
+            p_type = participant["object_type"]
             if (
-                participant["object_type"] == "device"
-                or participant["object_type"] == "device_group"
+                p_type == "device"
+                or p_type == "device_group"
+                or p_type == "network_locality"
             ):
                 participant = replaceId(participant, token)
                 if participant == {}:
-                    return {}
+                    return None
                 else:
                     rule[role] = participant
+            elif p_type == "locality_type":
+                participant["object_locality"] = participant["object_value"]
     return rule
 
 
@@ -317,19 +403,18 @@ def main():
     updated_rules = []
     not_found = []
     for rule in rules:
-        rule = updateParticipants(rule, token)
-        if rule:
-            updated_rules.append(rule)
+        new_rule = updateParticipants(rule, token)
+        if new_rule:
+            updated_rules.append(new_rule)
         else:
-            not_found.append(rule)
+            not_found.append(rule["id"])
     c = "y"
     # If unable to retrieve equivalent IDs for participants, warn user before
     # continuing
     if not_found:
-        total_nf = str(len(not_found))
         total_up = str(len(updated_rules))
         logging.warning(
-            f"\nFailed to find equivalent participant devices for {total_nf} rules."
+            f"\nFailed to find equivalent participant devices for rules with the following IDs: {not_found}"
         )
         logging.warning(f"Do you want to migrate the other {total_up} rules?")
         c = input("(y/n)")
@@ -342,7 +427,9 @@ def main():
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(message)s",
-        handlers=[logging.StreamHandler(sys.stdout),],
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+        ],
         level=logging.INFO,
     )
     main()
