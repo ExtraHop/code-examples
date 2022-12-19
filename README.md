@@ -84,7 +84,7 @@ For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lam
 
 ### migrate-detection-hiding
 
-This Python script migrates detection hiding rules from an ExtraHop sensor to Reveal(x) 360.
+The Python scripts in this directory migrate detection hiding rules. The migrate-detection-hiding.py script migrates tuning rules from an ECA VM to Reveal(x) 360. The migrate-detection-hiding-enterprise.py script migrates tuning rules from an ECA VM to another ECA VM.
 
 For more information, see [Migrate detection hiding rules](rest-migrate-detection-rules).
 
