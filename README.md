@@ -94,6 +94,12 @@ The Python scripts in this directory migrate user customizations from remote use
 
 For more information, see [Migrate to SAML from LDAP through the REST API](https://docs.extrahop.com/current/migrate-saml-rest/).
 
+### ml-api-logger
+
+This Go script recieves and writes logs sent from an ExtraHop sensor or console. The logs contain a record of all API interactions between the sensor or console and the ExtraHop Machine Learning Service.
+
+For more information, see [Export logs for Machine Learning Service API interactions](https://docs.extrahop.com/current/export-ml-logs)
+
 ### py-rx360-auth
 
 This Python script generates a temporary API access token and then authenticates two simple requests with the token that retrieve devices and device groups from the Reveal(x) 360 REST API.
