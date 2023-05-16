@@ -17,9 +17,13 @@ func addyLog(w http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
+    loggerIP := os.Getenv("LOGGER_IP")
+    if loggerIP == "" {
+        loggerIP = "0.0.0.0"
+    }
     http.HandleFunc("/log", addyLog)
     err := http.ListenAndServeTLS(
-        "localhost:" + os.Getenv("LOGGER_PORT"),
+        loggerIP + ":" + os.Getenv("LOGGER_PORT"),
         os.Getenv("LOGGER_CERT"),
         os.Getenv("LOGGER_KEY"),
         nil,
