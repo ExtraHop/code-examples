@@ -1,0 +1,2 @@
+host,api_key,ids_file
+extrahop.example.com,123456789abcdefghijklmnop,ids-bundle.tar.gz.aes
