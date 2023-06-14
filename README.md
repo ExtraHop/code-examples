@@ -182,6 +182,12 @@ This Python script downloads firmware images and upgrades multiple ExtraHop syst
 
 For more information, see [Upgrade ExtraHop firmware through the REST API](https://docs.extrahop.com/current/rest-upgrade-firmware/).
 
+### upload-ids-rules
+
+This Python script uploads a set of curated IDS rules from the ExtraHop Customer Portal to consoles and sensors.
+
+For more information, see [Upload IDS rules to the ExtraHop system through the REST API](https://docs.extrahop.com/current/rest-upload-ids/)
+
 ### upload-stix
 
 This Python script uploads all STIX files in a given directory to a list of ExtraHop systems
