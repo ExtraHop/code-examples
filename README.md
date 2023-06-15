@@ -186,7 +186,7 @@ For more information, see [Upgrade ExtraHop firmware through the REST API](https
 
 This Python script uploads a set of curated IDS rules from the ExtraHop Customer Portal to consoles and sensors.
 
-For more information, see [Upload IDS rules to the ExtraHop system through the REST API](https://docs.extrahop.com/current/rest-upload-ids/)
+For more information, see [Upload IDS rules to the ExtraHop system through the REST API](https://docs.extrahop.com/current/rest-upload-ids-rules/)
 
 ### upload-stix
 
