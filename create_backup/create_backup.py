@@ -24,7 +24,7 @@ def createBackup(BACKUP_NAME):
     data = {"name": BACKUP_NAME}
     r = requests.post(url, headers=headers, data=json.dumps(data))
     if r.status_code == 201:
-        return True
+        return r.headers["Location"].split("/")[-1]
     else:
         print("Unable to create backup")
         print(r.text)
@@ -32,24 +32,17 @@ def createBackup(BACKUP_NAME):
         sys.exit()
 
 
-def getIdName(BACKUP_NAME):
-    url = urlunparse(("https", HOST, "/api/v1/customizations", "", "", ""))
+def getIdName(backup_id):
+    url = urlunparse(("https", HOST, f"/api/v1/customizations/{backup_id}", "", "", ""))
     headers = {
         "Authorization": "ExtraHop apikey=%s" % API_KEY,
         "Content-Type": "application/json",
     }
     r = requests.get(url, headers=headers)
     if r.status_code == 200:
-        backups = json.loads(r.text)
-        for b in reversed(backups):
-            if BACKUP_NAME in b["name"]:
-                return b["id"], b["name"]
-            else:
-                continue
-        print("Unable to retrieve ID for specified backup")
-        sys.exit()
+        return json.loads(r.text)[".meta"]["name"]
     else:
-        print("Unable to retrieve backup IDs")
+        print("Unable to retrieve backup ID")
         print(r.text)
         print(r.status_code)
         sys.exit()
@@ -89,7 +82,7 @@ def writeBackup(backup, BACKUP_NAME):
     print(filepath)
 
 
-createBackup(BACKUP_NAME)
-backup_id, BACKUP_NAME = getIdName(BACKUP_NAME)
+backup_id = createBackup(BACKUP_NAME)
+new_backup_name = getIdName(backup_id)
 backup = downloadBackup(backup_id)
-writeBackup(backup, BACKUP_NAME)
+writeBackup(backup, new_backup_name)
