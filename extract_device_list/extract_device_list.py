@@ -123,7 +123,7 @@ def getDevices(limit, offset):
         (
             "https",
             HOST,
-            f"/api/v1/devices?limit={LIMIT}&offset={offset}&search_type=any",
+            f"/api/v1/devices/search",
             "",
             "",
             "",
@@ -133,7 +133,11 @@ def getDevices(limit, offset):
         "Authorization": getAuthHeader(),
         "Accept": "application/json",
     }
-    r = requests.get(url, headers=headers)
+    data = {
+        "limit": limit,
+        "offset": offset
+    }
+    r = requests.post(url, headers=headers, json=data)
     if r.status_code == 200:
         return r.json()
     else:

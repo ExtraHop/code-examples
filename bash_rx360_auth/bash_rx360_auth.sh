@@ -26,5 +26,5 @@ ACCESS_TOKEN=$(curl -s \
     -d "grant_type=client_credentials" \
     | jq -r '.access_token')
 
-curl -v -H "Authorization: Bearer ${ACCESS_TOKEN}" ${HOST}/api/v1/devices
+curl -v -X POST -H "Authorization: Bearer ${ACCESS_TOKEN}" --header "Content-Type: application/json" -d "{ \"active_from\": 1, \"active_until\": 0, \"limit\": 100}" ${HOST}/api/v1/devices/search
 curl -v -H "Authorization: Bearer ${ACCESS_TOKEN}" ${HOST}/api/v1/devicegroups

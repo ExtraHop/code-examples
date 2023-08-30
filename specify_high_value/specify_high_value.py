@@ -107,14 +107,21 @@ def getDevicesByIp(ip):
         (
             "https",
             HOST,
-            f"/api/v1/devices?limit=100&search_type=ip%20address&value={ip}",
+            f"/api/v1/devices/search",
             "",
             "",
             "",
         )
     )
     headers = {"Authorization": getAuthHeader()}
-    r = requests.get(url, headers=headers)
+    data = {
+        "filter": {
+            "field": "ipaddr",
+            "operand": ip,
+            "operator": "="
+        }
+    }
+    r = requests.post(url, headers=headers, json=data)
     if r.status_code == 200:
         devices = []
         for device in r.json():

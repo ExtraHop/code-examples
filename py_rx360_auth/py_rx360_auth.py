@@ -48,8 +48,13 @@ def getDevices(token):
             list:  The list of active devices
     """
     headers = {"Authorization": "Bearer " + token}
-    url = urlunparse(("https", HOST, "/api/v1/devices", "", "", ""))
-    r = requests.get(url, headers=headers)
+    url = urlunparse(("https", HOST, "/api/v1/devices/search", "", "", ""))
+    data = {
+        "active_from": 1,
+        "active_until": 0,
+        "limit": 100
+    }
+    r = requests.post(url, headers=headers, json=data)
     return r.json()
 
 
