@@ -108,5 +108,5 @@ localdstrule=$(compose_local_rule "dst")
 
 bpf_rules="not ip or (not ip proto 4) ${servicesubnet} and (${subnetrule} or ${localsrcrule} or ${localdstrule})"
 
-echo ./rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
-./rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
+echo /opt/extrahop/sbin/rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
+/opt/extrahop/sbin/rpcapd -v -f rpcapd.ini -i "${INTERFACE}" -D -F "${bpf_rules}"
