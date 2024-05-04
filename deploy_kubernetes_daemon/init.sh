@@ -32,7 +32,8 @@ then
     exit 255
 fi
 
-subnets=$(ip route show dev "${main_dev}" scope link | grep / | cut -d' ' -f1)
+# Get a list of netmasks for the default device, separated with a comma so compose_cluster_rule can parse correctly
+subnets=$(ip route show dev "${main_dev}" scope link | grep / | cut -d' ' -f1 | paste -s -d ',')
 if [ "${subnets}" = "" ]
 then
     echo "Could not lookup primary subnet, routing table for ${main_dev}:"
