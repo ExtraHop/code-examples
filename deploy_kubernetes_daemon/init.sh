@@ -24,7 +24,7 @@ exec 1>&6 6>&-
 # The script then builds a BPF that sends traffic to the ExtraHop sensor
 # only once.
 
-main_dev=$(ip route list | grep default | grep -E  'dev (\w+)' -o | awk '{print $2}')
+main_dev=$(ip route list | grep default | grep -o 'dev.*' | awk '{print $2}')
 if [ "${main_dev}" = "" ]
 then
     echo "Could not look up main network device, output:"
