@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Description: VPC Traffic Mirror Manager
+Parameters:
+  TagMirror:
+    Description: Specify the Tag for Traffic Mirror orchestration
+    Type: String
+    Default: Mirror
+
+
+Resources:
+  TrafficMirrorManagerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: This function automates the creation and management of VPC Traffic Mirror Sessions
+      FunctionName: ExtraHop-Traffic-Mirror-Manager
+      PackageType: Zip
+      Code:
+        S3Bucket: !Join [ '-', [ 'extrahop-onboarding', !Ref AWS::Region ] ]
+        S3Key: public/traffic-mirror-manager.zip
+      Runtime: python3.10
+      Handler: traffic-mirror-manager.lambda_handler
+      Role: !GetAtt LambdaTMMRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          TAGKEY: !Ref TagMirror
+  TMMTagRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: ExtraHop-Tag-Rule
+      Description: >
+        Trigger for Tag Events for ExtraHop Traffic Mirror Manager
+      EventPattern:
+        source:
+          - aws.ec2
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventName:
+            - CreateTags
+            - DeleteTags
+          eventSource:
+            - ec2.amazonaws.com
+          requestParameters:
+            tagSet:
+              items:
+                key:
+                  - !Ref TagMirror
+      State: ENABLED
+      Targets:
+        -
+          Arn: !GetAtt TrafficMirrorManagerLambda.Arn
+          Id: ExtraHop-Traffic-Mirror-Manager
+  TMMTagLambdaPerms:
+    Type: AWS::Lambda::Permission
+    DependsOn: TrafficMirrorManagerLambda
+    Properties:
+      FunctionName: !Ref TrafficMirrorManagerLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TMMTagRule.Arn
+
+  TMMExtraRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: ExtraHop-Extras-Rule
+      Description: >
+        Trigger for EC2/Delete Events for ExtraHop Traffic Mirror Manager
+      EventPattern:
+        source:
+          - aws.ec2
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventName:
+            - RunInstances
+            - DeleteTrafficMirrorSession
+          eventSource:
+            - ec2.amazonaws.com
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt TrafficMirrorManagerLambda.Arn
+          Id: ExtraHop-Traffic-Mirror-Manager
+  TMMExtraLambdaPerms:
+    Type: AWS::Lambda::Permission
+    DependsOn: TrafficMirrorManagerLambda
+    Properties:
+      FunctionName: !Ref TrafficMirrorManagerLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TMMExtraRule.Arn
+  LambdaTMMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:  !Join [ '-', [ 'ExtraHop-Traffic-Mirror-Manager', !Ref AWS::Region ] ]
+      Description: Lambda Execution Role for ExtraHop Traffic Mirror Manager
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Sid: RoleTrustPolicy
+          Effect: Allow
+          Principal:
+                Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PermissionsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: EC2Actions
+                Effect: Allow
+                Action:
+                - 'ec2:DescribeInstances'
+                - 'ec2:DescribeNetworkInterfaces'
+                - 'ec2:DescribeTrafficMirrorTargets'
+                - 'ec2:DescribeTrafficMirrorFilters'
+                - 'ec2:CreateTrafficMirrorSession'
+                - 'ec2:DeleteTrafficMirrorSession'
+                - 'ec2:DescribeTrafficMirrorSessions'
+                - 'ec2:DescribeTags'
+                - 'ec2:CreateTags'
+                - 'ec2:ModifyTrafficMirrorSession'
+                Resource: "*"
+              - Sid: CloudwatchLogsPublish1
+                Effect: Allow
+                Action:
+                - logs:CreateLogGroup
+                Resource:
+                - !Join [':', ['arn', !Ref AWS::Partition, 'logs', !Ref AWS::Region, !Ref AWS::AccountId, '*'] ]
+              - Sid: CloudwatchLogsPublish2
+                Effect: Allow
+                Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+                Resource:
+                - !Join [':', ['arn', !Ref AWS::Partition, 'logs', !Ref AWS::Region, !Ref AWS::AccountId, 'log-group', '/aws/lambda/ExtraHop-Traffic-Mirror-Manager', '*'] ]

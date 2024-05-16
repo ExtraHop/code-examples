@@ -36,6 +36,12 @@ This Python script searches for all dashboards owned by a given user account and
 
 For more information, see [Change a dashboard owner through the REST API](https://docs.extrahop.com/current/rest-change-dashboard-ownership/)
 
+### cloudformation-traffic-mirror
+
+This AWS CloudFormation template automatically mirrors traffic from EC2 instances to your ExtraHop sensors.
+
+For more information, see [Automate AWS Traffic Mirroring with CloudFormation](https://docs.extrahop.com/current/lambda-traffic-mirror/).
+
 ### create-backup
 
 This Python script creates backups of ExtraHop system customizations, such as bundles, triggers, dashboards, and users through the REST API. The script creates the backups on the ExtraHop system and then downloads each backup to the local machine.
@@ -78,9 +84,9 @@ For more information about these iRules, see [Session key forwarding from an F5 
 
 ### lambda-traffic-mirror
 
-This Python script automatically mirrors traffic from EC2 instances to your ExtraHop Reveal(x) 360 sensors.
+This Python script automatically mirrors traffic from EC2 instances to your ExtraHop sensors. This script has been deprecated and is replaced by the traffic mirroring CloudFormation template.
 
-For more information, see [Automate traffic mirroring for Reveal(x) 360 with Lambda](https://docs.extrahop.com/current/lambda-traffic-mirror/).
+For more information about this script, see [Automate traffic mirroring with AWS Lambda](https://docs.extrahop.com/9.5/lambda-traffic-mirror/). For information about the CloudFormation template, see [Automate AWS Traffic Mirroring with CloudFormation](https://docs.extrahop.com/current/lambda-traffic-mirror/).
 
 ### migrate-detection-hiding
 
