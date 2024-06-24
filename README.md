@@ -72,6 +72,12 @@ This Python script extracts the device list, including all device metadata, and 
 
 For more information, see [Extract the device list through the REST API](https://docs.extrahop.com/current/rest-extract-devices/).
 
+### extract-files
+
+This Python script extracts files from packets that match a specified query.
+
+For more information, see [Extract files from packets through the REST API](https://docs.extrahop.com/9.7/rest-extract-files/)
+
 ### extract-metrics
 
 This Python script extracts the total count of HTTP responses a server with an ID of 1298 sent over five minute time intervals and then writes the values to a csv file.
