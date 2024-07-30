@@ -76,7 +76,7 @@ For more information, see [Extract the device list through the REST API](https:/
 
 This Python script extracts files from packets that match a specified query.
 
-For more information, see [Extract files from packets through the REST API](https://docs.extrahop.com/9.7/rest-extract-files/)
+For more information, see [Extract files from packets through the REST API](https://docs.extrahop.com/current/rest-extract-files/)
 
 ### extract-metrics
 
