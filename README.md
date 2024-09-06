@@ -126,7 +126,7 @@ For more information, see [Query for records through the REST API](https://docs.
 
 ### query-records-third-party
 
-This Python script retrieves records from a third-party recordstore.
+This Python script retrieves records from a third-party and cloud recordstores.
 
 For more information, see [Query for records through the REST API](https://docs.extrahop.com/current/rest-query-records/).
 
