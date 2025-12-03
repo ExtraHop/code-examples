@@ -170,6 +170,12 @@ This Python script creates a device tag and then assigns the tag to all devices 
 
 For more information, see [Tag a device through the REST API](https://docs.extrahop.com/current/rest-tag-device/).
 
+### update-detections
+
+This Python script takes ticket information from a Python array and updates the associated detections on the ExtraHop system.
+
+For more information, see [Enable detection tracking](https://docs.extrahop.com/current/detections-configure-ticket-tracking)
+
 ### update-network-localities
 
 The Python scripts in this directory help consolidate and add descriptive names to network localities that were created before upgrading to ExtraHop firmware version 9.0.
