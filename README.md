@@ -208,7 +208,13 @@ For more information, see [Upload IDS rules to the ExtraHop system through the R
 
 ### upload-stix
 
-This Python script uploads all STIX files in a given directory to a list of ExtraHop systems
+This Python script uploads all STIX 1.x files in a given directory to a list of ExtraHop systems. This script is compatible with ExtraHop systems running firmware versions 26.1 or earlier.
+
+For more information, see [Upload STIX files through the REST API](https://docs.extrahop.com/26.1/rest-upload-stix/).
+
+### upload-stix2
+
+This Python script uploads a STIX 2.x file to an ExtraHop console or sensor. This script is compatible with ExtraHop systems running firmware versions 26.2 or later. 
 
 For more information, see [Upload STIX files through the REST API](https://docs.extrahop.com/current/rest-upload-stix/).
 
