@@ -18,18 +18,18 @@ API_KEY = os.environ['EXTRAHOP_API_KEY']
 
 USER_MAP_FILE = "user_map.json"
 # Function that deletes a user
-def deleteUser(remote_user, saml_user):
+def deleteUser(local_user, saml_user):
     """
     Method that deletes a user account.
 
         Parameters:
-            remote_user (str): The name of the remote user to delete
+            local_user (str): The name of the temporary local user to delete
             saml_user (str): The name of the SAML user to transfer customizations to
 
         Returns:
             str: Indicates whether the request was successful
     """
-    url = HOST + "/api/v1/users/" + remote_user + "?dest_user=" + saml_user
+    url = HOST + "/api/v1/users/" + local_user + "?dest_user=" + saml_user
     headers = {"Authorization": "ExtraHop apikey=%s" % API_KEY}
     r = requests.delete(url, headers=headers)
     if r.status_code == 204:
@@ -39,17 +39,17 @@ def deleteUser(remote_user, saml_user):
 
 
 # Create a list of remote users
-remote_users = {}
+local_users = {}
 with open(USER_MAP_FILE) as json_file:
     user_map = json.load(json_file)
     for user in user_map:
-        remote_users[user["remote_username"]] = user["saml_username"]
+        local_users[user["local_username"]] = user["saml_username"]
 
 # Delete remote user accounts
 success = []
 fail = []
-for user in remote_users:
-    updated = deleteUser(user, remote_users[user])
+for user in local_users:
+    updated = deleteUser(user, local_users[user])
     if updated == "success":
         success.append(user)
     else:
