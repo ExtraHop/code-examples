@@ -134,7 +134,13 @@ For more information, see [Query for records through the REST API](https://docs.
 
 This Python script rolls back firmware on multiple ExtraHop systems by reading URLs and API keys from a CSV file. Rolling back the firmware on an appliance resets the datastore and removes all metrics.
 
-For more information, see [Roll back firmware through the REST API](https://docs.extrahop.com/current/rest-rollback/)
+For more information, see [Roll back firmware through the REST API](https://docs.extrahop.com/current/rest-rollback/).
+
+### search-detection-logs
+
+This Python script searches for detection log entries with EQL. The script then outputs the results to a CSV file.
+
+For more information, see [Search for detection log entries with EQL through the REST API](https://docs.extrahop.com/26.3/rest-search-detections/).
 
 ### search-device
 
