@@ -50,7 +50,7 @@ def getToken():
     except:
         print(r.text)
         print(r.status_code)
-        print("Error retrieveing token from Reveal(x) 360")
+        print("Error retrieving token from Reveal(x) 360")
         sys.exit()
 
 
@@ -130,7 +130,7 @@ def process_files(upload_files, skip_list, host):
     Method that processes each file in the STIX_DIR directory. If a file has not been
     uploaded before, the method creates a new threat collection for the file. If a
     file has been uploaded before, the method updates the threat collection for that
-    file with with the latest file contents.
+    file with the latest file contents.
 
         Parameters:
             upload_files (list): A list of STIX filenames to upload
@@ -173,7 +173,7 @@ def update_old(file_path, user_key, host):
     Method that updates an existing threat collection.
 
         Parameters:
-            file (str): The filenpath of the STIX file
+            file (str): The filepath of the STIX file
             user_key (str): The user key of the threat collection
             host (str): The IP address or hostname of the Reveal(x) 360 API
     """

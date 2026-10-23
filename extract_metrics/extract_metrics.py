@@ -55,7 +55,7 @@ def getToken():
     except:
         print(r.text)
         print(r.status_code)
-        print("Error retrieveing token from Reveal(x) 360")
+        print("Error retrieving token from Reveal(x) 360")
         sys.exit()
 
 

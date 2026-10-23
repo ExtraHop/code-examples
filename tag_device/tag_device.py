@@ -56,7 +56,7 @@ def getToken():
     except:
         print(r.text)
         print(r.status_code)
-        print("Error retrieveing token from Reveal(x) 360")
+        print("Error retrieving token from Reveal(x) 360")
         sys.exit()
 
 
@@ -186,7 +186,7 @@ def assignTag(tag_id, tag_name, devices):
         for device in devices:
             print(f'    {device["display_name"]}')
     elif r.status_code == 207:
-        print("Assigned {tag_name} tag to a limited number of devices.")
+        print(f"Assigned {tag_name} tag to a limited number of devices.")
         print(json.dumps(r.json(), indent=4))
     else:
         print(f"Failed to assign tag: {tag_name}")
