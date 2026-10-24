@@ -53,7 +53,7 @@ def getToken():
     except:
         print(r.text)
         print(r.status_code)
-        print("Error retrieveing token from RevealX 360")
+        print("Error retrieving token from RevealX 360")
         sys.exit()
 
 def getAuthHeader(force_token_gen=False):
